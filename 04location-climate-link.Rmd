@@ -1,0 +1,54 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+Find locations of previous games
+
+```{r}
+rm(list = ls())
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/batsmen.csv")
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/bowlers.csv")
+
+loc = unique(bat$venue)
+```
+
+Write location file 
+
+```{r}
+write.csv(loc,"~/OneDrive - UCB-O365/CricketCC/Data/location.csv",row.names = F)
+```
+
+location with lat+long
+
+```{r}
+library(sp)
+library(rgeos)
+loc = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/location_geo.csv")
+loc = loc[-1,]
+names(loc) = c("venue","lat","long")
+sp.loc = loc
+sp.loc$lat = as.numeric(sp.loc$lat)
+sp.loc$long = as.numeric(sp.loc$long)
+coordinates(sp.loc) <- ~long+lat
+```
+
+loading tmax data 
+
+```{r}
+library(data.table)
+tmax = fread("~/OneDrive - UCB-O365/CricketCC/Data/netcdf_tmax_2022.csv")
+```
+tmax data to spatial points 
+
+```{r}
+sp.tmax = tmax
+coordinates(sp.tmax) <- ~lon+lat
+```
+
+finding nearest distance
+```{r}
+library(geosphere)
+dist = distm(sp.loc,sp.tmax, fun = distHaversine)
+```

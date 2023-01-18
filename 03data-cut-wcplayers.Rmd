@@ -1,0 +1,106 @@
+---
+title: ''
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+## Data chunk for only players who played in World Cup
+
+## Batsmen
+
+Getting unique names of batsmen in WC
+
+```{r}
+rm(list = ls())
+
+wc_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/wc_bat.csv")
+
+wc_teams = c("Namibia","Sri Lanka","Netherlands","United Arab Emirates","Scotland","West Indies","Ireland","Zimbabwe","New Zealand","England","Australia","Afghanistan","India","Pakistan","South Africa","Bangladesh")
+
+wc_bat = wc_bat[which(wc_bat$batting_team %in% wc_teams),]
+
+batsmen = unique(wc_bat$striker)
+
+```
+
+cut season data for these batsmen
+
+```{r}
+test_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/test_bat.csv")
+
+test_bat_cut = test_bat[which(test_bat$striker %in% batsmen),]
+
+odi_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/odi_bat.csv")
+
+odi_bat_cut = odi_bat[which(odi_bat$striker %in% batsmen),]
+
+t20_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/t20_bat.csv")
+
+t20_bat_cut = t20_bat[which(t20_bat$striker %in% batsmen),]
+
+ipl_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/ipl_bat.csv")
+
+ipl_bat_cut = ipl_bat[which(ipl_bat$striker %in% batsmen),]
+
+```
+
+rbind all data
+
+```{r}
+dat1 = rbind(ipl_bat_cut,t20_bat_cut)
+dat2 = rbind(dat1,odi_bat_cut)
+dat = rbind(dat2,test_bat_cut)
+dat = dat[order(as.Date(dat$start_date)),]
+dat$start_date = as.Date(dat$start_date)
+dat = dat[which(dat$start_date<"2022-10-16"),]
+write.csv(dat,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/batsmen.csv",row.names = F)
+```
+
+## Bowlers
+
+```{r}
+rm(list = ls())
+
+wc_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/wc_bowl.csv")
+
+wc_teams = c("Namibia","Sri Lanka","Netherlands","United Arab Emirates","Scotland","West Indies","Ireland","Zimbabwe","New Zealand","England","Australia","Afghanistan","India","Pakistan","South Africa","Bangladesh")
+
+wc_bowl = wc_bowl[which(wc_bowl$bowling_team %in% wc_teams),]
+
+bowlers = unique(wc_bowl$bowler)
+
+```
+
+cut season data for these bowlers
+
+```{r}
+test_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/test_bowl.csv")
+
+test_bowl_cut = test_bowl[which(test_bowl$bowler %in% bowlers),]
+
+odi_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/odi_bowl.csv")
+
+odi_bowl_cut = odi_bowl[which(odi_bowl$bowler %in% bowlers),]
+
+t20_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/t20_bowl.csv")
+
+t20_bowl_cut = t20_bowl[which(t20_bowl$bowler %in% bowlers),]
+
+ipl_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/ipl_bowl.csv")
+
+ipl_bowl_cut = ipl_bowl[which(ipl_bowl$bowler %in% bowlers),]
+
+```
+
+rbind all data
+
+```{r}
+dat1 = rbind(ipl_bowl_cut,t20_bowl_cut)
+dat2 = rbind(dat1,odi_bowl_cut)
+dat = rbind(dat2,test_bowl_cut)
+dat = dat[order(as.Date(dat$start_date)),]
+dat$start_date = as.Date(dat$start_date)
+dat = dat[which(dat$start_date<"2022-10-16"),]
+write.csv(dat,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/bowlers.csv",row.names = F)
+```

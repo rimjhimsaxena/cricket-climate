@@ -1,0 +1,229 @@
+---
+title: "02b2b-player"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### B2b games to player level panel data set
+
+Loading data
+
+```{r}
+rm(list = ls())
+test = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-season/test.csv")
+odi = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-season/odi.csv")
+t20 = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-season/t20.csv")
+ipl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-season/ipl.csv")
+wc = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/worldcup-games/wcgames.csv")
+```
+
+Prepping the data
+
+```{r}
+odi$count = 1
+odi$start_date = as.Date(odi$start_date)
+odi$month = substr(odi$start_date,6,7)
+
+test$count = 1
+test$start_date = as.Date(test$start_date)
+test$month = substr(test$start_date,6,7)
+
+t20$count = 1
+t20$start_date = as.Date(t20$start_date)
+t20$month = substr(t20$start_date,6,7)
+
+ipl$count = 1
+ipl$start_date = as.Date(ipl$start_date)
+ipl$month = substr(ipl$start_date,6,7)
+
+wc$count = 1
+wc$start_date = as.Date(wc$start_date)
+wc$month = substr(wc$start_date,6,7)
+```
+
+aggregating ODI data
+
+```{r}
+
+odi_run = aggregate(odi$runs_off_bat,by=list(odi$match_id,odi$batting_team,odi$bowling_team,odi$striker,odi$start_date,odi$month,odi$venue),sum,na.rm = T)
+odi_balls = aggregate(odi$count,by=list(odi$match_id,odi$batting_team,odi$bowling_team,odi$striker,odi$start_date,odi$month,odi$venue),sum,na.rm = T)
+odi_runsgiven = aggregate(odi$runs_off_bat,by=list(odi$match_id,odi$batting_team,odi$bowling_team,odi$bowler,odi$start_date,odi$month,odi$venue),sum,na.rm = T)
+odi_oversbowled = aggregate(odi$count,by=list(odi$match_id,odi$batting_team,odi$bowling_team,odi$bowler,odi$start_date,odi$month,odi$venue),sum,na.rm = T)
+odi_extras = aggregate(odi$extras,by=list(odi$match_id,odi$batting_team,odi$bowling_team,odi$bowler,odi$start_date,odi$month,odi$venue),sum,na.rm = T)
+
+
+names(odi_run) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","runs")
+names(odi_balls) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","balls")
+names(odi_runsgiven) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","runs_given")
+names(odi_oversbowled) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","balls_bowled")
+names(odi_extras) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","extras")
+
+```
+
+```{r}
+
+odi_bat = merge(odi_run,odi_balls,by=c("match_id","batting_team","bowling_team","striker","start_date","month","venue"))
+odi_bat$strike_rate  = (odi_bat$runs/odi_bat$balls)*100
+
+odi_bowl = merge(odi_runsgiven,odi_oversbowled,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue"))
+odi_bowl = merge(odi_bowl,odi_extras,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue")) 
+
+odi_bowl$overs_bowled = odi_bowl$balls_bowled/6
+odi_bowl$economy = odi_bowl$runs_given/odi_bowl$overs_bowled
+
+odi_bowl$type = "ODI"
+odi_bat$type = "ODI"
+```
+
+aggregating t20 data
+
+```{r}
+
+t20_run = aggregate(t20$runs_off_bat,by=list(t20$match_id,t20$batting_team,t20$bowling_team,t20$striker,t20$start_date,t20$month,t20$venue),sum,na.rm = T)
+t20_balls = aggregate(t20$count,by=list(t20$match_id,t20$batting_team,t20$bowling_team,t20$striker,t20$start_date,t20$month,t20$venue),sum,na.rm = T)
+t20_runsgiven = aggregate(t20$runs_off_bat,by=list(t20$match_id,t20$batting_team,t20$bowling_team,t20$bowler,t20$start_date,t20$month,t20$venue),sum,na.rm = T)
+t20_oversbowled = aggregate(t20$count,by=list(t20$match_id,t20$batting_team,t20$bowling_team,t20$bowler,t20$start_date,t20$month,t20$venue),sum,na.rm = T)
+t20_extras = aggregate(t20$extras,by=list(t20$match_id,t20$batting_team,t20$bowling_team,t20$bowler,t20$start_date,t20$month,t20$venue),sum,na.rm = T)
+
+
+names(t20_run) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","runs")
+names(t20_balls) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","balls")
+names(t20_runsgiven) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","runs_given")
+names(t20_oversbowled) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","balls_bowled")
+names(t20_extras) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","extras")
+
+```
+
+```{r}
+
+t20_bat = merge(t20_run,t20_balls,by=c("match_id","batting_team","bowling_team","striker","start_date","month","venue"))
+t20_bat$strike_rate  = (t20_bat$runs/t20_bat$balls)*100
+
+t20_bowl = merge(t20_runsgiven,t20_oversbowled,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue"))
+t20_bowl = merge(t20_bowl,t20_extras,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue")) 
+
+t20_bowl$overs_bowled = t20_bowl$balls_bowled/6
+t20_bowl$economy = t20_bowl$runs_given/t20_bowl$overs_bowled
+
+t20_bowl$type = "t20"
+t20_bat$type = "t20"
+```
+
+aggregating test data
+
+```{r}
+
+test_run = aggregate(test$runs_off_bat,by=list(test$match_id,test$batting_team,test$bowling_team,test$striker,test$start_date,test$month,test$venue),sum,na.rm = T)
+test_balls = aggregate(test$count,by=list(test$match_id,test$batting_team,test$bowling_team,test$striker,test$start_date,test$month,test$venue),sum,na.rm = T)
+test_runsgiven = aggregate(test$runs_off_bat,by=list(test$match_id,test$batting_team,test$bowling_team,test$bowler,test$start_date,test$month,test$venue),sum,na.rm = T)
+test_oversbowled = aggregate(test$count,by=list(test$match_id,test$batting_team,test$bowling_team,test$bowler,test$start_date,test$month,test$venue),sum,na.rm = T)
+test_extras = aggregate(test$extras,by=list(test$match_id,test$batting_team,test$bowling_team,test$bowler,test$start_date,test$month,test$venue),sum,na.rm = T)
+
+
+names(test_run) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","runs")
+names(test_balls) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","balls")
+names(test_runsgiven) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","runs_given")
+names(test_oversbowled) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","balls_bowled")
+names(test_extras) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","extras")
+
+```
+
+```{r}
+
+test_bat = merge(test_run,test_balls,by=c("match_id","batting_team","bowling_team","striker","start_date","month","venue"))
+test_bat$strike_rate  = (test_bat$runs/test_bat$balls)*100
+
+test_bowl = merge(test_runsgiven,test_oversbowled,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue"))
+test_bowl = merge(test_bowl,test_extras,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue")) 
+
+test_bowl$overs_bowled = test_bowl$balls_bowled/6
+test_bowl$economy = test_bowl$runs_given/test_bowl$overs_bowled
+
+test_bowl$type = "test"
+test_bat$type = "test"
+```
+
+aggregating ipl data
+
+```{r}
+
+ipl_run = aggregate(ipl$runs_off_bat,by=list(ipl$match_id,ipl$batting_team,ipl$bowling_team,ipl$striker,ipl$start_date,ipl$month,ipl$venue),sum,na.rm = T)
+ipl_balls = aggregate(ipl$count,by=list(ipl$match_id,ipl$batting_team,ipl$bowling_team,ipl$striker,ipl$start_date,ipl$month,ipl$venue),sum,na.rm = T)
+ipl_runsgiven = aggregate(ipl$runs_off_bat,by=list(ipl$match_id,ipl$batting_team,ipl$bowling_team,ipl$bowler,ipl$start_date,ipl$month,ipl$venue),sum,na.rm = T)
+ipl_oversbowled = aggregate(ipl$count,by=list(ipl$match_id,ipl$batting_team,ipl$bowling_team,ipl$bowler,ipl$start_date,ipl$month,ipl$venue),sum,na.rm = T)
+ipl_extras = aggregate(ipl$extras,by=list(ipl$match_id,ipl$batting_team,ipl$bowling_team,ipl$bowler,ipl$start_date,ipl$month,ipl$venue),sum,na.rm = T)
+
+
+names(ipl_run) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","runs")
+names(ipl_balls) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","balls")
+names(ipl_runsgiven) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","runs_given")
+names(ipl_oversbowled) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","balls_bowled")
+names(ipl_extras) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","extras")
+
+```
+
+```{r}
+
+ipl_bat = merge(ipl_run,ipl_balls,by=c("match_id","batting_team","bowling_team","striker","start_date","month","venue"))
+ipl_bat$strike_rate  = (ipl_bat$runs/ipl_bat$balls)*100
+
+ipl_bowl = merge(ipl_runsgiven,ipl_oversbowled,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue"))
+ipl_bowl = merge(ipl_bowl,ipl_extras,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue")) 
+
+ipl_bowl$overs_bowled = ipl_bowl$balls_bowled/6
+ipl_bowl$economy = ipl_bowl$runs_given/ipl_bowl$overs_bowled
+
+ipl_bowl$type = "ipl"
+ipl_bat$type = "ipl"
+```
+
+aggregating wc data
+
+```{r}
+
+wc_run = aggregate(wc$runs_off_bat,by=list(wc$match_id,wc$batting_team,wc$bowling_team,wc$striker,wc$start_date,wc$month,wc$venue),sum,na.rm = T)
+wc_balls = aggregate(wc$count,by=list(wc$match_id,wc$batting_team,wc$bowling_team,wc$striker,wc$start_date,wc$month,wc$venue),sum,na.rm = T)
+wc_runsgiven = aggregate(wc$runs_off_bat,by=list(wc$match_id,wc$batting_team,wc$bowling_team,wc$bowler,wc$start_date,wc$month,wc$venue),sum,na.rm = T)
+wc_oversbowled = aggregate(wc$count,by=list(wc$match_id,wc$batting_team,wc$bowling_team,wc$bowler,wc$start_date,wc$month,wc$venue),sum,na.rm = T)
+wc_extras = aggregate(wc$extras,by=list(wc$match_id,wc$batting_team,wc$bowling_team,wc$bowler,wc$start_date,wc$month,wc$venue),sum,na.rm = T)
+
+
+names(wc_run) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","runs")
+names(wc_balls) = c("match_id","batting_team","bowling_team","striker","start_date","month","venue","balls")
+names(wc_runsgiven) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","runs_given")
+names(wc_oversbowled) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","balls_bowled")
+names(wc_extras) = c("match_id","batting_team","bowling_team","bowler","start_date","month","venue","extras")
+
+```
+
+```{r}
+
+wc_bat = merge(wc_run,wc_balls,by=c("match_id","batting_team","bowling_team","striker","start_date","month","venue"))
+wc_bat$strike_rate  = (wc_bat$runs/wc_bat$balls)*100
+
+wc_bowl = merge(wc_runsgiven,wc_oversbowled,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue"))
+wc_bowl = merge(wc_bowl,wc_extras,by=c("match_id","batting_team","bowling_team","bowler","start_date","month","venue")) 
+
+wc_bowl$overs_bowled = wc_bowl$balls_bowled/6
+wc_bowl$economy = wc_bowl$runs_given/wc_bowl$overs_bowled
+
+wc_bowl$type = "wc"
+wc_bat$type = "wc"
+```
+
+Write Data
+
+```{r}
+write.csv(odi_bat,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/odi_bat.csv",row.names = F)
+write.csv(odi_bowl,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/odi_bowl.csv",row.names = F)
+write.csv(t20_bat,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/t20_bat.csv",row.names = F)
+write.csv(t20_bowl,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/t20_bowl.csv",row.names = F)
+write.csv(test_bat,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/test_bat.csv",row.names = F)
+write.csv(test_bowl,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/test_bowl.csv",row.names = F)
+write.csv(wc_bowl,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/wc_bowl.csv",row.names = F)
+write.csv(wc_bat,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/wc_bat.csv",row.names = F)
+write.csv(ipl_bat,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/ipl_bat.csv",row.names = F)
+write.csv(ipl_bowl,"~/OneDrive - UCB-O365/CricketCC/Data/panel-player/ipl_bowl.csv",row.names = F)
+
+```
