@@ -1,0 +1,67 @@
+---
+title: "analysis-accumulation"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+rm(list = ls())
+
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bat_loc.csv")
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bowl_loc.csv")
+```
+
+order by name
+
+```{r}
+library(lubridate)
+bat_alt = bat %>% 
+  arrange(start_date) %>% 
+  group_by(striker) %>% 
+  mutate(occurence = row_number())
+
+
+batsmen = as.data.frame(unique(bat$striker))
+#write.csv(batsmen,"~/OneDrive - UCB-O365/CricketCC/Data/batsmen.csv",row.names = F)
+
+bowlers = as.data.frame(unique(bowl$bowler))
+#write.csv(bowlers,"~/OneDrive - UCB-O365/CricketCC/Data/bowler.csv",row.names = F)
+
+
+bat_alt <- bat_alt %>%
+  arrange(start_date) %>% 
+  group_by(striker) %>%
+  mutate(change_temp = tempmax - lag(tempmax)) 
+
+bat_alt$accumulation = ifelse(bat_alt$change_temp<0,0,bat_alt$change_temp)
+
+bat_alt = bat_alt %>% 
+  group_by(striker) %>% 
+  mutate(heat_acc = sum(accumulation,na.rm = T))
+
+slice = bat_alt %>% 
+  group_by(striker) %>%
+  slice(which.max(as.Date(start_date)))
+
+slice$time = 1
+
+slice2  = bat_alt %>% 
+  group_by(striker) %>%
+  slice(which.min(as.Date(start_date)))
+
+slice2$time = 0
+
+sliced = rbind(slice, slice2)
+
+sliced$treat = ifelse(sliced$heat_acc==0,"control",NA)
+sliced$treat = ifelse(sliced$heat_acc>0 & sliced$heat_acc<=10,"treat1",sliced$treat)
+sliced$treat = ifelse(sliced$heat_acc>10 & sliced$heat_acc<=20,"treat2",sliced$treat)
+sliced$treat = ifelse(sliced$heat_acc>20 & sliced$heat_acc<=30,"treat3",sliced$treat)
+sliced$treat = ifelse(sliced$heat_acc>30 & sliced$heat_acc<=40,"treat4",sliced$treat)
+sliced$treat = ifelse(sliced$heat_acc>40,"treat5",sliced$treat)
+
+dummy = as.data.frame(model.matrix(~treat - 1,data = sliced))
+sliced = cbind(sliced,dummy)
+
+
+```

@@ -1,0 +1,25 @@
+---
+title: "10tempdata-home"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+Loading datasets
+```{r}
+rm(list = ls())
+library(tidyr)
+a = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/loc-climate/monthly-temp.csv",head = TRUE, sep=";")
+b = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/loc-climate/monthly-precip.csv",head = TRUE, sep=";")
+c = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/loc-climate/monthly-humidity.csv",head = TRUE, sep=";")
+```
+
+merging datasets by lon,lat
+
+```{r}
+m1 = merge(a,b,by=c("lon","lat","date"))
+m2 = merge(m1,c,by=c("lon","lat","date"))
+write.csv(m2,"~/OneDrive - UCB-O365/CricketCC/Data/loc-climate/monthly-all.csv",row.names = F)
+```
+
+

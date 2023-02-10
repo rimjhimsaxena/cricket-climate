@@ -1,0 +1,103 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bat_loc.csv")
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bowl_loc.csv")
+```
+
+
+
+```{r,echo=FALSE}
+wc_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbat_loc.csv")
+wc_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbowl_loc.csv")
+```
+
+
+
+```{r,echo=FALSE}
+m1 = rbind(bat,wc_bat)
+m2 = rbind(bowl,wc_bowl)
+```
+
+
+
+
+```{r,echo=FALSE}
+library(lubridate)
+library(tidyverse)
+
+bat_alt = m1 %>% 
+  arrange(start_date) %>% 
+  group_by(striker) %>% 
+  mutate(occurence = row_number())
+
+bowl_alt = m2 %>% 
+  arrange(start_date) %>% 
+  group_by(bowler) %>% 
+  mutate(occurence = row_number())
+
+# Lag of temp - batsmen
+bat_alt <- bat_alt %>%
+  arrange(start_date) %>% 
+  group_by(striker) %>%
+  mutate(change_temp = tempmax - lag(tempmax)) 
+
+# Lag of temp - bowler
+bowl_alt <- bowl_alt %>%
+  arrange(start_date) %>% 
+  group_by(bowler) %>%
+  mutate(change_temp = tempmax - lag(tempmax)) 
+
+bat_alt$start_date = as.Date(bat_alt$start_date)
+
+bat_alt <- bat_alt %>%
+  arrange(start_date) %>% 
+  group_by(striker) %>%
+  mutate(gap_days = c(NA,diff(start_date))) 
+
+bowl_alt$start_date = as.Date(bowl_alt$start_date)
+
+bowl_alt <- bowl_alt %>%
+  arrange(start_date) %>% 
+  group_by(bowler) %>%
+  mutate(gap_days = c(NA,diff(start_date))) 
+
+```
+
+
+Visualize
+```{r}
+bat_alt = na.omit(bat_alt)
+bat_alt = bat_alt[which(bat_alt$gap_days<=5),]
+
+library(ggplot2)
+ggplot(bat_alt, aes(x=change_temp,y = runs)) +
+    geom_point(size = 2, shape = 1) +
+  geom_smooth(method = "loess",col = "red")
+
+ggplot(bat_alt, aes(x=change_temp,y = balls)) +
+    geom_point(size = 2, shape = 1) +
+  geom_smooth(method = "loess",col = "red")
+
+bowl_alt = bowl_alt[which(bowl_alt$gap_days<=5),]
+
+ggplot(bowl_alt, aes(x=tempmax,y = economy)) +
+    geom_point(size = 2, shape = 1) +
+  geom_smooth(method = "loess",col = "red")
+
+ggplot(bowl_alt, aes(x=tempmax,y = extras)) +
+    geom_point(size = 2, shape = 1) +
+  geom_smooth(method = "loess",col = "red")
+
+
+
+```
+
+
+

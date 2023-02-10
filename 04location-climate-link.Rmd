@@ -52,3 +52,6 @@ finding nearest distance
 library(geosphere)
 dist = distm(sp.loc,sp.tmax, fun = distHaversine)
 ```
+```{r}
+sample = bat[which(bat$venue %in% loc[i]),]
+```

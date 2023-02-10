@@ -1,0 +1,51 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+a = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/home/batsmen-clim-loc.csv")
+a$month = substr(a$date,6,7)
+temp = aggregate(a$airtemp,by=list(a$batsmen,a$month),mean)
+names(temp) = c("batsmen","month","airtemp")
+
+temp$airtemp = temp$airtemp-273.15
+
+precip = aggregate(a$precip,by=list(a$batsmen,a$month),mean)
+names(precip) = c("batsmen","month","precip")
+
+humidity = aggregate(a$humidity,by=list(a$batsmen,a$month),mean)
+names(humidity) = c("batsmen","month","humidity")
+
+cl = merge(temp,precip,by=c("batsmen","month"))
+clim = merge(cl,humidity,by=c("batsmen","month"))
+write.csv(clim,"~/OneDrive - UCB-O365/CricketCC/Data/home/batsmen-avg-clim.csv",row.names = F)
+```
+
+
+```{r}
+rm(list = ls())
+a = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/home/bowler-clim-loc.csv")
+a$month = substr(a$date,6,7)
+temp = aggregate(a$airtemp,by=list(a$bowler,a$month),mean)
+names(temp) = c("bowler","month","airtemp")
+
+temp$airtemp = temp$airtemp-273.15
+
+precip = aggregate(a$precip,by=list(a$bowler,a$month),mean)
+names(precip) = c("bowler","month","precip")
+
+humidity = aggregate(a$humidity,by=list(a$bowler,a$month),mean)
+names(humidity) = c("bowler","month","humidity")
+
+cl = merge(temp,precip,by=c("bowler","month"))
+clim = merge(cl,humidity,by=c("bowler","month"))
+write.csv(clim,"~/OneDrive - UCB-O365/CricketCC/Data/home/bowler-avg-clim.csv",row.names = F)
+
+```
+
+
+

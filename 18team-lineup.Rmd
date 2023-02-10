@@ -1,0 +1,185 @@
+---
+title: "18data-cut-opposingteam"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+
+wc_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player/wc_bat.csv")
+
+wc_teams = c("Namibia","Sri Lanka","Netherlands","United Arab Emirates","Scotland","West Indies","Ireland","Zimbabwe","New Zealand","England","Australia","Afghanistan","India","Pakistan","South Africa","Bangladesh")
+
+wc_bat = wc_bat[which(wc_bat$batting_team %in% wc_teams),]
+
+batsmen = unique(wc_bat$striker)
+
+```
+
+
+
+
+```{r}
+test = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/test.csv")
+odi = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/odi.csv")
+t20 = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/t20.csv")
+ipl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/ipl.csv")
+```
+
+ipl match - lineup 
+
+```{r}
+library(tidyverse)
+library(lubridate)
+ipl1 = ipl[,c(1,3,4,5,8,9,10,12)]
+ipl_bat = ipl1[!duplicated(ipl1[,c('match_id',"striker")]),]
+ipl_bowl = ipl1[!duplicated(ipl1[,c('match_id',"bowler")]),]
+
+ipl_bat = ipl_bat[,c(1:5,7)]
+ipl_bowl = ipl_bowl[,c(1:4,6,8)]
+names(ipl_bat) = c("match_id","start_date","venue","innings","team","player")
+names(ipl_bowl) = c("match_id","start_date","venue","innings","team","player")
+
+ipl_new = rbind(ipl_bat,ipl_bowl)
+ipl_new = ipl_new %>% 
+  arrange(match_id,team)
+
+ipl_new = ipl_new[!duplicated(ipl_new[,c('match_id',"player")]),]
+ipl_new$count = 1
+members = aggregate(ipl_new$count,by=list(ipl_new$match_id,ipl_new$team),sum,na.rm = T)
+
+names(members) = c("match_id","team","members")
+
+
+match = members$match_id[which(members$members<11)]
+
+ipl_new = ipl_new[-which(ipl_new$match_id %in% match),]
+
+ipl_new = merge(ipl_new,members,by=c("match_id","team"))
+
+write.csv(ipl_new,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/ipl.csv",row.names = F)
+```
+
+test match - lineup 
+
+```{r}
+library(tidyverse)
+library(lubridate)
+test1 = test[,c(1,3,4,5,7,8,9,11)]
+test_bat = test1[!duplicated(test1[,c('match_id',"striker")]),]
+test_bowl = test1[!duplicated(test1[,c('match_id',"bowler")]),]
+
+test_bat = test_bat[,c(1:5,7)]
+test_bowl = test_bowl[,c(1:4,6,8)]
+names(test_bat) = c("match_id","start_date","venue","innings","team","player")
+names(test_bowl) = c("match_id","start_date","venue","innings","team","player")
+
+test_new = rbind(test_bat,test_bowl)
+test_new = test_new %>% 
+  arrange(match_id,team)
+
+test_new = test_new[!duplicated(test_new[,c('match_id',"player")]),]
+test_new$count = 1
+
+members = aggregate(test_new$count,by=list(test_new$match_id,test_new$team),sum,na.rm = T)
+
+names(members) = c("match_id","team","members")
+
+match = members$match_id[which(members$members<11)]
+
+test_new = test_new[-which(test_new$match_id %in% match),]
+
+test_new = merge(test_new,members,by=c("match_id","team"))
+
+write.csv(test_new,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/test.csv",row.names = F)
+````
+
+odi match - line up
+
+```{r}
+library(tidyverse)
+library(lubridate)
+odi1 = odi[,c(1,3,4,5,7,8,9,11)]
+odi_bat = odi1[!duplicated(odi1[,c('match_id',"striker")]),]
+odi_bowl = odi1[!duplicated(odi1[,c('match_id',"bowler")]),]
+
+odi_bat = odi_bat[,c(1:5,7)]
+odi_bowl = odi_bowl[,c(1:4,6,8)]
+names(odi_bat) = c("match_id","start_date","venue","innings","team","player")
+names(odi_bowl) = c("match_id","start_date","venue","innings","team","player")
+
+odi_new = rbind(odi_bat,odi_bowl)
+odi_new = odi_new %>% 
+  arrange(match_id,team)
+
+odi_new = odi_new[!duplicated(odi_new[,c('match_id',"player")]),]
+
+odi_new$count = 1
+
+members = aggregate(odi_new$count,by=list(odi_new$match_id,odi_new$team),sum,na.rm = T)
+
+names(members) = c("match_id","team","members")
+
+match = members$match_id[which(members$members<11)]
+
+odi_new = odi_new[-which(odi_new$match_id %in% match),]
+
+odi_new = merge(odi_new,members,by=c("match_id","team"))
+
+write.csv(odi_new,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/odi.csv",row.names = F)
+````
+
+t20 match line up
+
+
+```{r}
+library(tidyverse)
+library(lubridate)
+t201 = t20[,c(1,3,4,5,8,9,10,12)]
+t20_bat = t201[!duplicated(t201[,c('match_id',"striker")]),]
+t20_bowl = t201[!duplicated(t201[,c('match_id',"bowler")]),]
+
+t20_bat = t20_bat[,c(1:5,7)]
+t20_bowl = t20_bowl[,c(1:4,6,8)]
+names(t20_bat) = c("match_id","start_date","venue","innings","team","player")
+names(t20_bowl) = c("match_id","start_date","venue","innings","team","player")
+
+t20_new = rbind(t20_bat,t20_bowl)
+t20_new = t20_new %>% 
+  arrange(match_id,team)
+
+t20_new = t20_new[!duplicated(t20_new[,c('match_id',"player")]),]
+t20_new$count = 1
+members = aggregate(t20_new$count,by=list(t20_new$match_id,t20_new$team),sum,na.rm = T)
+
+names(members) = c("match_id","team","members")
+
+write.csv(members,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/t20_flagcheck.csv",row.names = F)
+write.csv(t20_new,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/t20_wo_check.csv",row.names = F)
+
+match = members$match_id[which(members$members<11)]
+
+t20_new = t20_new[-which(t20_new$match_id %in% match),]
+
+t20_new = merge(t20_new,members,by=c("match_id","team"))
+
+write.csv(t20_new,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/t20.csv",row.names = F)
+```
+
+
+```{r}
+m1 = rbind(test_new,odi_new)
+m2 = rbind(m1,t20_new)
+m3 = rbind(m2,ipl_new)
+write.csv(m3,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/allgame-lineup.csv",row.names = F)
+```
+
+
+```{r}
+t = as.data.frame(table(m3$venue,m3$start_date))
+t = t[which(t$Freq>0),]
+names(t) = c("venue","start_date","freq")
+write.csv(t,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/venue.csv",row.names = F)
+```

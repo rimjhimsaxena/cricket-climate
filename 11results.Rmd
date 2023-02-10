@@ -1,0 +1,201 @@
+---
+title: "11results"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r,echo=FALSE}
+rm(list = ls())
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bat_loc.csv")
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bowl_loc.csv")
+```
+
+
+```{r,echo=FALSE}
+wc_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbat_loc.csv")
+wc_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbowl_loc.csv")
+```
+
+
+
+```{r,echo=FALSE}
+m1 = rbind(bat,wc_bat)
+m2 = rbind(bowl,wc_bowl)
+```
+
+
+```{r,echo=FALSE}
+library(lubridate)
+library(tidyverse)
+
+bat_alt = m1 %>% 
+  arrange(start_date) %>% 
+  group_by(striker) %>% 
+  mutate(occurence = row_number())
+
+bowl_alt = m2 %>% 
+  arrange(start_date) %>% 
+  group_by(bowler) %>% 
+  mutate(occurence = row_number())
+
+# Lag of temp - batsmen
+bat_alt <- bat_alt %>%
+  arrange(start_date) %>% 
+  group_by(striker) %>%
+  mutate(change_temp = tempmax - lag(tempmax)) 
+
+# Lag of temp - bowler
+bowl_alt <- bowl_alt %>%
+  arrange(start_date) %>% 
+  group_by(bowler) %>%
+  mutate(change_temp = tempmax - lag(tempmax)) 
+
+bat_alt$start_date = as.Date(bat_alt$start_date)
+
+bat_alt <- bat_alt %>%
+  arrange(start_date) %>% 
+  group_by(striker) %>%
+  mutate(gap_days = c(NA,diff(start_date))) 
+
+bowl_alt$start_date = as.Date(bowl_alt$start_date)
+
+bowl_alt <- bowl_alt %>%
+  arrange(start_date) %>% 
+  group_by(bowler) %>%
+  mutate(gap_days = c(NA,diff(start_date))) 
+
+```
+
+
+```{r,echo=FALSE}
+bat_alt$treat = ifelse(bat_alt$change_temp <= 2.5 & bat_alt$change_temp>= -2.5,0,NA)
+bat_alt$treat = ifelse(bat_alt$change_temp > 2.5 & bat_alt$change_temp<= 10,1, bat_alt$treat)
+bat_alt$treat = ifelse(bat_alt$change_temp > 10 ,2,bat_alt$treat)
+
+bat_alt$treat = ifelse(bat_alt$change_temp < -2.5 & bat_alt$change_temp>= -10,3,bat_alt$treat)
+bat_alt$treat = ifelse(bat_alt$change_temp < -10 ,4,bat_alt$treat)
+
+bat_alt$treat = as.factor(bat_alt$treat)
+bat_alt$treat = factor(bat_alt$treat,levels = c(0,1,2,3,4),labels = c("[-2.5,2.5]","(2.5,10]","(10,inf)","[-10,-2.5)","(-inf,-10)"))
+table(bat_alt$treat)
+```
+
+
+```{r,echo=FALSE}
+bat_alt$gap = ifelse(bat_alt$gap_days >=1 & bat_alt$gap_days <= 3,1,NA)
+bat_alt$gap = ifelse(bat_alt$gap_days > 3 & bat_alt$gap_days <= 10,2,bat_alt$gap)
+bat_alt$gap = ifelse(bat_alt$gap_days > 10 & bat_alt$gap_days <= 17,3,bat_alt$gap)
+bat_alt$gap = ifelse(bat_alt$gap_days > 17,0,bat_alt$gap)
+bat_alt$gap = as.factor(bat_alt$gap)
+bat_alt$gap = factor(bat_alt$gap,levels = c(0,1,2,3), labels = c(">17 days","1-3 days","4-10 days","11-17 days"))
+table(bat_alt$gap)
+```
+
+
+```{r,echo=FALSE}
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+table(bat_alt$treat)
+reg = feols(strike_rate ~ treat * gap,data = bat_alt)
+reg1 = feols(strike_rate ~ treat * gap + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(strike_rate ~ treat * gap + precip + humidity|striker ,data = bat_alt)
+reg3 = feols(strike_rate ~ treat* gap + precip + humidity|striker + batting_team ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(strike_rate ~ treat* gap + precip + humidity|batting_team ,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+
+```
+
+```{r}
+etable(reg,reg1,reg2,reg3,reg4, headers = c("1", "2", "3","4","5"))
+
+```
+
+
+```{r,echo=FALSE}
+ggplot(bat_alt, aes(x=change_temp)) +
+    geom_histogram(binwidth=0.5, colour="black", fill="white")
+
+ggplot(bat_alt, aes(x=gap_days)) +
+    geom_histogram(binwidth=1, colour="black", fill="white")
+#aus = bat_alt[which(bat_alt$batting_team == "Australia"),]
+```
+
+
+```{r,echo=FALSE}
+bowl_alt$treat = ifelse(bowl_alt$change_temp <= 2.5 & bowl_alt$change_temp>= -2.5,0,NA)
+bowl_alt$treat = ifelse(bowl_alt$change_temp > 2.5 & bowl_alt$change_temp<= 10,1, bowl_alt$treat)
+bowl_alt$treat = ifelse(bowl_alt$change_temp > 10 ,2,bowl_alt$treat)
+
+bowl_alt$treat = ifelse(bowl_alt$change_temp < -2.5 & bowl_alt$change_temp>= -10,3,bowl_alt$treat)
+bowl_alt$treat = ifelse(bowl_alt$change_temp < -10 ,4,bowl_alt$treat)
+
+bowl_alt$treat = as.factor(bowl_alt$treat)
+bowl_alt$treat = factor(bowl_alt$treat,levels = c(0,1,2,3,4),labels = c("[-2.5,2.5]","(2.5,10]","(10,inf)","[-10,-2.5)","(-inf,-10)"))
+```
+
+
+```{r,echo=FALSE}
+bowl_alt$gap = ifelse(bowl_alt$gap_days >=1 & bowl_alt$gap_days <= 3,1,NA)
+bowl_alt$gap = ifelse(bowl_alt$gap_days > 3 & bowl_alt$gap_days <= 10,2,bowl_alt$gap)
+bowl_alt$gap = ifelse(bowl_alt$gap_days > 10 & bowl_alt$gap_days <= 17,3,bowl_alt$gap)
+bowl_alt$gap = ifelse(bowl_alt$gap_days > 17,0,bowl_alt$gap)
+bowl_alt$gap = as.factor(bowl_alt$gap)
+bowl_alt$gap = factor(bowl_alt$gap,levels = c(0,1,2,3), labels = c(">17 days","1-3 days","4-10 days","11-17 days"))
+table(bowl_alt$gap)
+```
+
+
+```{r,echo=FALSE}
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+table(bowl_alt$treat)
+b_reg = feols(economy ~ treat*gap,data = bowl_alt)
+b_reg1 = feols(economy ~ treat*gap + precip + humidity ,data = bowl_alt , cluster = c("bowler"))
+b_reg2 = feols(economy ~ treat*gap + precip + humidity|bowler ,data = bowl_alt,cluster = c("bowler"))
+b_reg3 = feols(economy ~ treat*gap + precip + humidity|bowler + bowling_team ,data = bowl_alt,cluster = c("bowler"))
+b_reg4 = feols(economy ~ treat*gap + precip + humidity|bowling_team ,data = bowl_alt,cluster = c("bowler"))
+
+regs = list(b_reg,b_reg1,b_reg2,b_reg3)
+```
+
+```{r}
+
+etable(b_reg, b_reg1, b_reg2,b_reg3,b_reg4, headers = c("1", "2", "3","4","5"))
+```
+
+
+```{r}
+b_reg = feols(extras ~ treat*gap,data = bowl_alt)
+b_reg1 = feols(extras ~ treat*gap + precip + humidity ,data = bowl_alt , cluster = c("bowler"))
+b_reg2 = feols(extras ~ treat*gap + precip + humidity|bowler ,data = bowl_alt,cluster = c("bowler"))
+b_reg3 = feols(extras ~ treat*gap + precip + humidity|bowler + bowling_team ,data = bowl_alt,cluster = c("bowler"))
+b_reg4 = feols(extras ~ treat*gap + precip + humidity|bowling_team ,data = bowl_alt,cluster = c("bowler"))
+
+regs = list(b_reg,b_reg1,b_reg2,b_reg3)
+
+summary(b_reg)
+
+```
+
+```{r}
+etable(b_reg, b_reg1, b_reg2,b_reg3,b_reg4, headers = c("1", "2", "3","4","5"))
+```
+
+
+
+```{r,echo=FALSE}
+tapply(bat_alt$strike_rate, bat_alt$treat, summary)
+tapply(bat_alt$strike_rate, bat_alt$gap, summary)
+
+
+tapply(bowl_alt$economy, bowl_alt$treat, summary)
+tapply(bowl_alt$extras, bowl_alt$treat, summary)
+
+
+```

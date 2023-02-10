@@ -1,0 +1,120 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bat_loc.csv")
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bowl_loc.csv")
+```
+
+
+```{r,echo=FALSE}
+wc_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbat_loc.csv")
+wc_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbowl_loc.csv")
+```
+
+```{r,echo=FALSE}
+m1 = rbind(bat,wc_bat)
+m2 = rbind(bowl,wc_bowl)
+```
+
+
+```{r}
+clim = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/home/batsmen-avg-clim.csv")
+```
+
+
+```{r}
+names(clim) = c("striker","month","airtemp_avg","precip_avg","humidity_avg")
+m1 = merge(m1,clim,by=c("striker","month"))
+m1$tempdiff = m1$tempmax - m1$airtemp_avg
+```
+
+
+```{r,echo=FALSE}
+library(lubridate)
+library(tidyverse)
+
+bat_alt = m1 %>% 
+  arrange(start_date) %>% 
+  group_by(striker) %>% 
+  mutate(occurence = row_number())
+
+bowl_alt = m2 %>% 
+  arrange(start_date) %>% 
+  group_by(bowler) %>% 
+  mutate(occurence = row_number())
+
+bat_alt$start_date = as.Date(bat_alt$start_date)
+
+bat_alt <- bat_alt %>%
+  arrange(start_date) %>% 
+  group_by(striker) %>%
+  mutate(gap_days = c(NA,diff(start_date))) 
+
+bowl_alt$start_date = as.Date(bowl_alt$start_date)
+
+bowl_alt <- bowl_alt %>%
+  arrange(start_date) %>% 
+  group_by(bowler) %>%
+  mutate(gap_days = c(NA,diff(start_date))) 
+```
+
+```{r,echo=FALSE}
+bat_alt$treat = ifelse(bat_alt$tempdiff <= 2.5 & bat_alt$tempdiff>= -2.5,0,NA)
+bat_alt$treat = ifelse(bat_alt$tempdiff > 2.5 & bat_alt$tempdiff<= 10,1, bat_alt$treat)
+bat_alt$treat = ifelse(bat_alt$tempdiff > 10 ,2,bat_alt$treat)
+
+bat_alt$treat = ifelse(bat_alt$tempdiff < -2.5 & bat_alt$tempdiff>= -10,3,bat_alt$treat)
+bat_alt$treat = ifelse(bat_alt$tempdiff < -10 ,4,bat_alt$treat)
+
+bat_alt$treat = as.factor(bat_alt$treat)
+bat_alt$treat = factor(bat_alt$treat,levels = c(0,1,2,3,4),labels = c("[-2.5,2.5]","(2.5,10]","(10,inf)","[-10,-2.5)","(-inf,-10)"))
+table(bat_alt$treat)
+```
+
+
+```{r,echo=FALSE}
+bat_alt$gap = ifelse(bat_alt$gap_days >=1 & bat_alt$gap_days <= 3,1,NA)
+bat_alt$gap = ifelse(bat_alt$gap_days > 3 & bat_alt$gap_days <= 10,2,bat_alt$gap)
+bat_alt$gap = ifelse(bat_alt$gap_days > 10 & bat_alt$gap_days <= 17,3,bat_alt$gap)
+bat_alt$gap = ifelse(bat_alt$gap_days > 17,0,bat_alt$gap)
+bat_alt$gap = as.factor(bat_alt$gap)
+bat_alt$gap = factor(bat_alt$gap,levels = c(0,1,2,3), labels = c(">17 days","1-3 days","4-10 days","11-17 days"))
+table(bat_alt$gap)
+```
+
+
+```{r}
+
+
+```
+
+
+```{r,echo=FALSE}
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+table(bat_alt$treat)
+reg = feols(runs ~ tempdiff,data = bat_alt,cluster = c("striker"))
+reg1 = feols(runs ~ tempdiff + gap_days,data = bat_alt,cluster = c("striker"))
+
+reg = feols(runs ~ treat * gap,data = bat_alt,cluster = c("striker"))
+reg1 = feols(runs ~ treat * gap + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(runs ~ treat * gap + precip + humidity|striker ,data = bat_alt)
+reg3 = feols(runs ~ treat* gap + precip + humidity|striker + batting_team ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(runs ~ treat* gap + precip + humidity|batting_team + type,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+
+etable(reg,reg1,reg2,reg3,reg4, headers = c("1", "2", "3","4","5"))
+
+```
+
+
+

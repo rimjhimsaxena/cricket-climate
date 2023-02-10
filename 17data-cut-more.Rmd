@@ -1,0 +1,57 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+test = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/all-game/test.csv")
+odi = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/all-game/odi.csv")
+t20 = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/all-game/t20.csv")
+ipl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/all-game/ipl.csv")
+allt20 = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/all-game/allt20.csv")
+t20_un = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/all-game/t20_unofficial.csv")
+```
+
+
+```{r,echo=FALSE}
+extra = allt20[which(!(allt20$match_id %in% t20$match_id)),]
+wc_teams = c("Namibia","Sri Lanka","Netherlands","United Arab Emirates","Scotland","West Indies","Ireland","Zimbabwe","New Zealand","England","Australia","Afghanistan","India","Pakistan","South Africa","Bangladesh")
+
+extra = extra[which(extra$batting_team %in% wc_teams),]
+t20 = t20[which(t20$batting_team %in% wc_teams),]
+
+t20 = rbind(t20,extra)
+```
+
+
+```{r,echo=FALSE}
+table(t20_un$season)
+test1 = test[which(test$season=="2022"|test$season=="2022/23"|test$season=="2021/22"|test$season=="2021"),]
+odi1 = odi[which(odi$season=="2022"|odi$season=="2022/23"|odi$season=="2021/22"|odi$season=="2021"),]
+t201 = t20[which(t20$season=="2022"|t20$season=="2022/23"|t20$season=="2021/22"|t20$season=="2021"),]
+ipl1 = ipl[which(ipl$season=="2022"|ipl$season=="2022/23"|ipl$season=="2021"),]
+```
+
+
+```{r,echo=FALSE}
+write.csv(test1,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/test.csv",row.names = F)
+write.csv(odi1,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/odi.csv",row.names = F)
+write.csv(t201,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/t20.csv",row.names = F)
+write.csv(ipl1,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/ipl.csv",row.names = F)
+```
+
+
+```{r}
+sample = sample[which(sample$Country %in% wc_teams),]
+write.csv(sample,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/t20fielding.csv",row.names = F)
+```
+
+
+```{r,echo=FALSE}
+
+
+
+```

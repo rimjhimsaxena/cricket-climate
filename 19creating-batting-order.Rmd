@@ -1,0 +1,113 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(tidyverse)
+library(data.table)
+
+t20 = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/t20.csv")
+
+t20_alt = t20[!duplicated(t20[,c('match_id',"innings","striker")]),]
+
+t20_alt = t20_alt %>% 
+  group_by(match_id,innings) %>% 
+  arrange(over) %>% 
+  mutate(batting_order = rleid(striker))
+
+t20_alt = t20_alt[,c(1,5,10,33)]
+
+
+t20_new = merge(t20,t20_alt,by=c("match_id","innings","striker"))
+
+write.csv(t20_new,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/with-batting-order/t20.csv",row.names = F)
+```
+
+
+
+```{r}
+
+ipl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/ipl.csv")
+
+ipl_alt = ipl[!duplicated(ipl[,c('match_id',"innings","striker")]),]
+
+ipl_alt = ipl_alt %>% 
+  group_by(match_id,innings) %>% 
+  arrange(over) %>% 
+  mutate(batting_order = rleid(striker))
+
+ipl_alt = ipl_alt[,c(1,5,10,33)]
+
+
+ipl_new = merge(ipl,ipl_alt,by=c("match_id","innings","striker"))
+
+
+write.csv(ipl_new,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/with-batting-order/ipl.csv",row.names = F)
+
+```
+
+
+
+```{r}
+
+odi = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/odi.csv")
+
+odi_alt = odi[!duplicated(odi[,c('match_id',"innings","striker")]),]
+
+odi_alt = odi_alt %>% 
+  group_by(match_id,innings) %>% 
+  arrange(over) %>% 
+  mutate(batting_order = rleid(striker))
+
+odi_alt = odi_alt[,c(1,5,10,24)]
+
+
+odi_new = merge(odi,odi_alt,by=c("match_id","innings","striker"))
+
+
+write.csv(odi_new,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/with-batting-order/odi.csv",row.names = F)
+```
+
+
+```{r}
+test = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/test.csv")
+
+test_alt = test[!duplicated(test[,c('match_id',"innings","striker")]),]
+
+test_alt = test_alt %>% 
+  group_by(match_id,innings) %>% 
+  arrange(ball) %>% 
+  mutate(batting_order = rleid(striker))
+
+test_alt = test_alt[,c(1,5,9,23)]
+
+
+test_new = merge(test,test_alt,by=c("match_id","innings","striker"))
+
+write.csv(test_new,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/with-batting-order/test.csv",row.names = F)
+```
+
+```{r}
+rm(list = ls())
+
+wc = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/worldcup-games/wcgames.csv")
+
+wc_alt = wc[!duplicated(wc[,c('match_id',"innings","striker")]),]
+
+wc_alt = wc_alt %>% 
+  group_by(match_id,innings) %>% 
+  arrange(over) %>% 
+  mutate(batting_order = rleid(striker))
+
+wc_alt = wc_alt[,c(1,5,10,33)]
+
+
+wc_new = merge(wc,wc_alt,by=c("match_id","innings","striker"))
+
+
+write.csv(wc_new,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/with-batting-order/wc-wbo.csv",row.names = F)
+```

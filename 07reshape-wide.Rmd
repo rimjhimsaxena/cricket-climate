@@ -1,0 +1,76 @@
+---
+title: "reshape-wide"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+rm(list = ls())
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bat_loc.csv")
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bowl_loc.csv")
+```
+
+```{r}
+library(lubridate)
+bat_alt = bat %>% 
+  arrange(start_date) %>% 
+  group_by(striker) %>% 
+  mutate(occurence = row_number())
+```
+
+```{r}
+bat_alt$occurence = as.numeric(bat_alt$occurence)
+bat_alt$time = bat_alt$occurence
+bat_alt = as.data.frame(bat_alt)
+bat_short = bat_alt[,c(1:6,8:11,13:15,20,21,25,28:29,45)]
+wide_bat = reshape(bat_short,idvar = "striker", timevar = "time",direction = "wide")
+```
+
+```{r}
+library(lubridate)
+bowl_alt = bowl %>% 
+  arrange(start_date) %>% 
+  group_by(bowler) %>% 
+  mutate(occurence = row_number())
+```
+
+```{r}
+bowl_alt$occurence = as.numeric(bowl_alt$occurence)
+bowl_alt$time = bowl_alt$occurence
+bowl_alt = as.data.frame(bowl_alt)
+bowl_short = bowl_alt[,c(1:6,8:13,15:17,22,23,27,30:31,47)]
+wide_bowl = reshape(bowl_short,idvar = "bowler", timevar = "time",direction = "wide")
+```
+
+
+
+
+
+
+```{r}
+wc_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbat_loc.csv")
+wc_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbowl_loc.csv")
+
+first_wc_bat = wc_bat %>% 
+  group_by(striker) %>%
+  slice(which.min(as.Date(start_date)))
+
+
+first_wc_bowl = wc_bowl %>% 
+  group_by(bowler) %>%
+  slice(which.min(as.Date(start_date)))
+
+wide_bat_wc = merge(first_wc_bat,wide_bat,by="striker")
+wide_bowl_wc = merge(first_wc_bowl,wide_bowl,by="bowler")
+
+
+```
+
+writing files
+```{r}
+write.csv(wide_bat,"~/OneDrive - UCB-O365/CricketCC/Data/final/wide_bat.csv",row.names = F)
+write.csv(wide_bowl,"~/OneDrive - UCB-O365/CricketCC/Data/final/wide_bowl.csv",row.names = F)
+write.csv(wide_bat_wc,"~/OneDrive - UCB-O365/CricketCC/Data/final/wide_bat_wc.csv",row.names = F)
+write.csv(wide_bowl_wc,"~/OneDrive - UCB-O365/CricketCC/Data/final/wide_bowl_wc.csv",row.names = F)
+```
+

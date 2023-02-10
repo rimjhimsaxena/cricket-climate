@@ -1,0 +1,87 @@
+---
+title: "analysis"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+rm(list = ls())
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bat_loc.csv")
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bowl_loc.csv")
+```
+
+```{r}
+lastgame_prewc_bat = bat %>% 
+  group_by(striker) %>%
+  slice(which.max(as.Date(start_date)))
+
+lastgame_prewc_bowl = bowl %>% 
+  group_by(bowler) %>%
+  slice(which.max(as.Date(start_date)))
+```
+
+```{r}
+wc_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbat_loc.csv")
+wc_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/wcbowl_loc.csv")
+```
+
+
+```{r}
+firstgame_wc_bat = wc_bat %>% 
+  group_by(striker) %>%
+  slice(which.min(as.Date(start_date)))
+
+firstgame_wc_bowl = wc_bowl %>% 
+  group_by(bowler) %>%
+  slice(which.min(as.Date(start_date)))
+
+```
+
+
+```{r}
+m1 = merge(lastgame_prewc_bat,firstgame_wc_bat,by="striker")
+m2 = merge(lastgame_prewc_bowl,firstgame_wc_bowl,by="bowler")
+```
+
+```{r}
+m1$tempdiff = m1$tempmax.y - m1$tempmax.x
+reg = lm(strike_rate.y ~ tempdiff + precip.y + humidity.y,data = m1)
+```
+
+```{r}
+ggplot(m1, aes(x=tempdiff)) +
+    geom_histogram(binwidth=1, colour="black", fill="white")
+
+aus = m1[which(m1$batting_team.y == "Australia"),]
+ggplot(aus, aes(x=tempdiff)) +
+    geom_histogram(binwidth=1, colour="black", fill="white")
+```
+
+```{r}
+summary(m1$tempdiff)
+m1$treatment = NA
+m1$treatment = ifelse(m1$tempdiff< -16,"treat_1",m1$treatment)
+m1$treatment = ifelse(m1$tempdiff>=-16 & m1$tempdiff< -9,"treat_2",m1$treatment)
+m1$treatment = ifelse(m1$tempdiff>=-9 & m1$tempdiff< -2,"treat_3",m1$treatment)
+m1$treatment = ifelse(m1$tempdiff>=-2 & m1$tempdiff<=2,"control",m1$treatment)
+m1$treatment = ifelse(m1$tempdiff>2 & m1$tempdiff<=8,"treat_4",m1$treatment)
+m1$treatment = ifelse(m1$tempdiff>8 & m1$tempdiff<=15,"treat_5",m1$treatment)
+table(m1$treatment)
+```
+
+
+
+```{r}
+reg = lm(strike_rate.y ~ treatment,data = m1)
+summary(reg)
+```
+
+
+
+
+```{r}
+reg1 = lm(strike_rate ~ tempmax + precip + humidity + batting_team,data = wc_bat)
+summary(reg1)
+```
+
+
