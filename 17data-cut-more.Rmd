@@ -49,9 +49,3 @@ sample = sample[which(sample$Country %in% wc_teams),]
 write.csv(sample,"~/OneDrive - UCB-O365/CricketCC/Data/recent-more-season/t20fielding.csv",row.names = F)
 ```
 
-
-```{r,echo=FALSE}
-
-
-
-```

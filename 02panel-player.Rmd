@@ -24,22 +24,33 @@ Prepping the data
 odi$count = 1
 odi$start_date = as.Date(odi$start_date,"%m/%d/%y")
 odi$month = substr(odi$start_date,6,7)
+odi$wicket = ifelse(odi$wicket_type!="",1,0)
+odi$boundary = ifelse(odi$runs_off_bat==4|odi$runs_off_bat==6,1,0)
 
 test$count = 1
 test$start_date = as.Date(test$start_date)
 test$month = substr(test$start_date,6,7)
+test$wicket = ifelse(test$wicket_type!="",1,0)
+test$boundary = ifelse(test$runs_off_bat==4|test$runs_off_bat==6,1,0)
 
 t20$count = 1
 t20$start_date = as.Date(t20$start_date)
 t20$month = substr(t20$start_date,6,7)
+t20$wicket = ifelse(t20$wicket_type!="",1,0)
+t20$boundary = ifelse(t20$runs_off_bat==4|t20$runs_off_bat==6,1,0)
 
 ipl$count = 1
 ipl$start_date = as.Date(ipl$start_date)
 ipl$month = substr(ipl$start_date,6,7)
+ipl$wicket = ifelse(ipl$wicket_type!="",1,0)
+ipl$boundary = ifelse(ipl$runs_off_bat==4|ipl$runs_off_bat==6,1,0)
 
 wc$count = 1
 wc$start_date = as.Date(wc$start_date)
 wc$month = substr(wc$start_date,6,7)
+wc$wicket = ifelse(wc$wicket_type!="",1,0)
+wc$boundary = ifelse(wc$runs_off_bat==4|wc$runs_off_bat==6,1,0)
+
 ```
 
 aggregating ODI data
@@ -50,31 +61,45 @@ odi_run = aggregate(odi$runs_off_bat,by=list(odi$match_id,odi$start_date,odi$ven
 
 odi_balls = aggregate(odi$count,by=list(odi$match_id,odi$start_date,odi$venue,odi$innings, odi$batting_team,odi$bowling_team,odi$striker,odi$month,odi$batting_order),sum,na.rm = T)
 
-odi_runsgiven = aggregate(odi$runs_off_bat,by=list(odi$match_id,odi$start_date,odi$venue,odi$innings, odi$batting_team,odi$bowling_team,odi$striker,odi$month,odi$batting_order),sum,na.rm = T)
+odi_boundary = aggregate(odi$boundary,by=list(odi$match_id,odi$start_date,odi$venue,odi$innings, odi$batting_team,odi$bowling_team,odi$striker,odi$month,odi$batting_order),sum,na.rm = T)
 
-odi_oversbowled = aggregate(odi$count,by=list(odi$match_id,odi$start_date,odi$venue,odi$innings, odi$batting_team,odi$bowling_team,odi$striker,odi$month,odi$batting_order),sum,na.rm = T)
+odi_runsgiven = aggregate(odi$runs_off_bat,by=list(odi$match_id,odi$start_date,odi$venue,odi$innings, odi$batting_team,odi$bowling_team,odi$bowler,odi$month),sum,na.rm = T)
 
-odi_extras = aggregate(odi$extras,by=list(odi$match_id,odi$start_date,odi$venue,odi$innings, odi$batting_team,odi$bowling_team,odi$striker,odi$month,odi$batting_order),sum,na.rm = T)
+odi_oversbowled = aggregate(odi$count,by=list(odi$match_id,odi$start_date,odi$venue,odi$innings, odi$batting_team,odi$bowling_team,odi$bowler,odi$month),sum,na.rm = T)
 
+odi_extras = aggregate(odi$extras,by=list(odi$match_id,odi$start_date,odi$venue,odi$innings, odi$batting_team,odi$bowling_team,odi$bowler,odi$month),sum,na.rm = T)
+
+odi_wicket = aggregate(odi$wicket,by=list(odi$match_id,odi$start_date,odi$venue,odi$innings, odi$batting_team,odi$bowling_team,odi$bowler,odi$month),sum,na.rm = T)
 
 names(odi_run) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs")
 names(odi_balls) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls")
-names(odi_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs_given")
-names(odi_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls_bowled")
-names(odi_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","extras")
+names(odi_boundary) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","boundary")
+names(odi_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","runs_given")
+names(odi_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","balls_bowled")
+names(odi_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","extras")
+names(odi_wicket) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","wicket")
 
 ```
 
 ```{r}
 
 odi_bat = merge(odi_run,odi_balls,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
+odi_bat = merge(odi_bat,odi_boundary,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
+
 odi_bat$strike_rate  = (odi_bat$runs/odi_bat$balls)*100
 
-odi_bowl = merge(odi_runsgiven,odi_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
-odi_bowl = merge(odi_bowl,odi_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order")) 
+odi_bowl = merge(odi_runsgiven,odi_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month"))
+odi_bowl = merge(odi_bowl,odi_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
+odi_bowl = merge(odi_bowl,odi_wicket,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
+
 
 odi_bowl$overs_bowled = odi_bowl$balls_bowled/6
 odi_bowl$economy = odi_bowl$runs_given/odi_bowl$overs_bowled
+odi_bowl$bowling_average = odi_bowl$runs_given/odi_bowl$wicket
+odi_bowl$strike_rate = odi_bowl$balls_bowled/odi_bowl$wicket
+
+odi_bowl$bowling_average[!is.finite(odi_bowl$bowling_average)] <- NA
+odi_bowl$strike_rate[!is.finite(odi_bowl$strike_rate)] <- NA
 
 odi_bowl$type = "ODI"
 odi_bat$type = "ODI"
@@ -88,31 +113,46 @@ t20_run = aggregate(t20$runs_off_bat,by=list(t20$match_id,t20$start_date,t20$ven
 
 t20_balls = aggregate(t20$count,by=list(t20$match_id,t20$start_date,t20$venue,t20$innings, t20$batting_team,t20$bowling_team,t20$striker,t20$month,t20$batting_order),sum,na.rm = T)
 
-t20_runsgiven = aggregate(t20$runs_off_bat,by=list(t20$match_id,t20$start_date,t20$venue,t20$innings, t20$batting_team,t20$bowling_team,t20$striker,t20$month,t20$batting_order),sum,na.rm = T)
+t20_boundary = aggregate(t20$boundary,by=list(t20$match_id,t20$start_date,t20$venue,t20$innings, t20$batting_team,t20$bowling_team,t20$striker,t20$month,t20$batting_order),sum,na.rm = T)
 
-t20_oversbowled = aggregate(t20$count,by=list(t20$match_id,t20$start_date,t20$venue,t20$innings, t20$batting_team,t20$bowling_team,t20$striker,t20$month,t20$batting_order),sum,na.rm = T)
+t20_runsgiven = aggregate(t20$runs_off_bat,by=list(t20$match_id,t20$start_date,t20$venue,t20$innings, t20$batting_team,t20$bowling_team,t20$bowler,t20$month),sum,na.rm = T)
 
-t20_extras = aggregate(t20$extras,by=list(t20$match_id,t20$start_date,t20$venue,t20$innings, t20$batting_team,t20$bowling_team,t20$striker,t20$month,t20$batting_order),sum,na.rm = T)
+t20_oversbowled = aggregate(t20$count,by=list(t20$match_id,t20$start_date,t20$venue,t20$innings, t20$batting_team,t20$bowling_team,t20$bowler,t20$month),sum,na.rm = T)
+
+t20_extras = aggregate(t20$extras,by=list(t20$match_id,t20$start_date,t20$venue,t20$innings, t20$batting_team,t20$bowling_team,t20$bowler,t20$month),sum,na.rm = T)
+
+t20_wicket = aggregate(t20$wicket,by=list(t20$match_id,t20$start_date,t20$venue,t20$innings, t20$batting_team,t20$bowling_team,t20$bowler,t20$month),sum,na.rm = T)
 
 
 names(t20_run) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs")
 names(t20_balls) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls")
-names(t20_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs_given")
-names(t20_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls_bowled")
-names(t20_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","extras")
+names(t20_boundary) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","boundary")
+names(t20_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","runs_given")
+names(t20_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","balls_bowled")
+names(t20_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","extras")
+names(t20_wicket) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","wicket")
 
 ```
 
 ```{r}
 
 t20_bat = merge(t20_run,t20_balls,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
+t20_bat = merge(t20_bat,t20_boundary,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
+
 t20_bat$strike_rate  = (t20_bat$runs/t20_bat$balls)*100
 
-t20_bowl = merge(t20_runsgiven,t20_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
-t20_bowl = merge(t20_bowl,t20_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order")) 
+t20_bowl = merge(t20_runsgiven,t20_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month"))
+t20_bowl = merge(t20_bowl,t20_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
+t20_bowl = merge(t20_bowl,t20_wicket,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
+
 
 t20_bowl$overs_bowled = t20_bowl$balls_bowled/6
 t20_bowl$economy = t20_bowl$runs_given/t20_bowl$overs_bowled
+t20_bowl$bowling_average = t20_bowl$runs_given/t20_bowl$wicket
+t20_bowl$strike_rate = t20_bowl$balls_bowled/t20_bowl$wicket
+
+t20_bowl$bowling_average[!is.finite(t20_bowl$bowling_average)] <- NA
+t20_bowl$strike_rate[!is.finite(t20_bowl$strike_rate)] <- NA
 
 t20_bowl$type = "t20"
 t20_bat$type = "t20"
@@ -126,31 +166,45 @@ test_run = aggregate(test$runs_off_bat,by=list(test$match_id,test$start_date,tes
 
 test_balls = aggregate(test$runs_off_bat,by=list(test$match_id,test$start_date,test$venue,test$innings, test$batting_team,test$bowling_team,test$striker,test$month,test$batting_order),sum,na.rm = T)
 
-test_runsgiven = aggregate(test$runs_off_bat,by=list(test$match_id,test$start_date,test$venue,test$innings, test$batting_team,test$bowling_team,test$striker,test$month,test$batting_order),sum,na.rm = T)
+test_boundary = aggregate(test$boundary,by=list(test$match_id,test$start_date,test$venue,test$innings, test$batting_team,test$bowling_team,test$striker,test$month,test$batting_order),sum,na.rm = T)
 
-test_oversbowled = aggregate(test$runs_off_bat,by=list(test$match_id,test$start_date,test$venue,test$innings, test$batting_team,test$bowling_team,test$striker,test$month,test$batting_order),sum,na.rm = T)
+test_runsgiven = aggregate(test$runs_off_bat,by=list(test$match_id,test$start_date,test$venue,test$innings, test$batting_team,test$bowling_team,test$bowler,test$month),sum,na.rm = T)
 
-test_extras = aggregate(test$extras,by=list(test$match_id,test$start_date,test$venue,test$innings, test$batting_team,test$bowling_team,test$striker,test$month,test$batting_order),sum,na.rm = T)
+test_oversbowled = aggregate(test$runs_off_bat,by=list(test$match_id,test$start_date,test$venue,test$innings, test$batting_team,test$bowling_team,test$bowler,test$month),sum,na.rm = T)
+
+test_extras = aggregate(test$extras,by=list(test$match_id,test$start_date,test$venue,test$innings, test$batting_team,test$bowling_team,test$bowler,test$month),sum,na.rm = T)
+
+test_wicket = aggregate(test$wicket,by=list(test$match_id,test$start_date,test$venue,test$innings, test$batting_team,test$bowling_team,test$bowler,test$month),sum,na.rm = T)
 
 
 names(test_run) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs")
 names(test_balls) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls")
-names(test_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs_given")
-names(test_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls_bowled")
-names(test_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","extras")
+names(test_boundary) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","boundary")
+names(test_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","runs_given")
+names(test_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","balls_bowled")
+names(test_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","extras")
+names(test_wicket) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","wicket")
 
 ```
 
 ```{r}
 
 test_bat = merge(test_run,test_balls,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
+test_bat = merge(test_bat,test_boundary,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
+
 test_bat$strike_rate  = (test_bat$runs/test_bat$balls)*100
 
-test_bowl = merge(test_runsgiven,test_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
-test_bowl = merge(test_bowl,test_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order")) 
+test_bowl = merge(test_runsgiven,test_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month"))
+test_bowl = merge(test_bowl,test_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
+test_bowl = merge(test_bowl,test_wicket,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
 
 test_bowl$overs_bowled = test_bowl$balls_bowled/6
 test_bowl$economy = test_bowl$runs_given/test_bowl$overs_bowled
+test_bowl$bowling_average = test_bowl$runs_given/test_bowl$wicket
+test_bowl$strike_rate = test_bowl$balls_bowled/test_bowl$wicket
+
+test_bowl$bowling_average[!is.finite(test_bowl$bowling_average)] <- NA
+test_bowl$strike_rate[!is.finite(test_bowl$strike_rate)] <- NA
 
 test_bowl$type = "test"
 test_bat$type = "test"
@@ -164,32 +218,43 @@ ipl_run = aggregate(ipl$runs_off_bat,by=list(ipl$match_id,ipl$start_date,ipl$ven
 
 ipl_balls = aggregate(ipl$count,by=list(ipl$match_id,ipl$start_date,ipl$venue,ipl$innings, ipl$batting_team,ipl$bowling_team,ipl$striker,ipl$month,ipl$batting_order),sum,na.rm = T)
 
-ipl_runsgiven = aggregate(ipl$runs_off_bat,by=list(ipl$match_id,ipl$start_date,ipl$venue,ipl$innings, ipl$batting_team,ipl$bowling_team,ipl$striker,ipl$month,ipl$batting_order),sum,na.rm = T)
+ipl_boundary = aggregate(ipl$boundary,by=list(ipl$match_id,ipl$start_date,ipl$venue,ipl$innings, ipl$batting_team,ipl$bowling_team,ipl$striker,ipl$month,ipl$batting_order),sum,na.rm = T)
 
-ipl_oversbowled = aggregate(ipl$count,by=list(ipl$match_id,ipl$start_date,ipl$venue,ipl$innings, ipl$batting_team,ipl$bowling_team,ipl$striker,ipl$month,ipl$batting_order),sum,na.rm = T)
+ipl_runsgiven = aggregate(ipl$runs_off_bat,by=list(ipl$match_id,ipl$start_date,ipl$venue,ipl$innings, ipl$batting_team,ipl$bowling_team,ipl$bowler,ipl$month),sum,na.rm = T)
 
-ipl_extras = aggregate(ipl$extras,by=list(ipl$match_id,ipl$start_date,ipl$venue,ipl$innings, ipl$batting_team,ipl$bowling_team,ipl$striker,ipl$month,ipl$batting_order),sum,na.rm = T)
+ipl_oversbowled = aggregate(ipl$count,by=list(ipl$match_id,ipl$start_date,ipl$venue,ipl$innings, ipl$batting_team,ipl$bowling_team,ipl$bowler,ipl$month),sum,na.rm = T)
 
+ipl_extras = aggregate(ipl$extras,by=list(ipl$match_id,ipl$start_date,ipl$venue,ipl$innings, ipl$batting_team,ipl$bowling_team,ipl$bowler,ipl$month),sum,na.rm = T)
+
+ipl_wicket = aggregate(ipl$wicket,by=list(ipl$match_id,ipl$start_date,ipl$venue,ipl$innings, ipl$batting_team,ipl$bowling_team,ipl$bowler,ipl$month),sum,na.rm = T)
 
 names(ipl_run) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs")
 names(ipl_balls) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls")
-names(ipl_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs_given")
-names(ipl_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls_bowled")
-names(ipl_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","extras")
+names(ipl_boundary) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","boundary")
+names(ipl_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","runs_given")
+names(ipl_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","balls_bowled")
+names(ipl_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","extras")
+names(ipl_wicket) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","wicket")
 
 ```
 
 ```{r}
 
 ipl_bat = merge(ipl_run,ipl_balls,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
+ipl_bat = merge(ipl_bat,ipl_boundary,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
 ipl_bat$strike_rate  = (ipl_bat$runs/ipl_bat$balls)*100
 
-ipl_bowl = merge(ipl_runsgiven,ipl_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
-ipl_bowl = merge(ipl_bowl,ipl_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order")) 
+ipl_bowl = merge(ipl_runsgiven,ipl_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month"))
+ipl_bowl = merge(ipl_bowl,ipl_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
+ipl_bowl = merge(ipl_bowl,ipl_wicket,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
 
 ipl_bowl$overs_bowled = ipl_bowl$balls_bowled/6
 ipl_bowl$economy = ipl_bowl$runs_given/ipl_bowl$overs_bowled
+ipl_bowl$bowling_average = ipl_bowl$runs_given/ipl_bowl$wicket
+ipl_bowl$strike_rate = ipl_bowl$balls_bowled/ipl_bowl$wicket
 
+ipl_bowl$bowling_average[!is.finite(ipl_bowl$bowling_average)] <- NA
+ipl_bowl$strike_rate[!is.finite(ipl_bowl$strike_rate)] <- NA
 ipl_bowl$type = "ipl"
 ipl_bat$type = "ipl"
 ```
@@ -202,32 +267,44 @@ wc_run = aggregate(wc$runs_off_bat,by=list(wc$match_id,wc$start_date,wc$venue,wc
 
 wc_balls = aggregate(wc$count,by=list(wc$match_id,wc$start_date,wc$venue,wc$innings, wc$batting_team,wc$bowling_team,wc$striker,wc$month,wc$batting_order),sum,na.rm = T)
 
-wc_runsgiven = aggregate(wc$runs_off_bat,by=list(wc$match_id,wc$start_date,wc$venue,wc$innings, wc$batting_team,wc$bowling_team,wc$striker,wc$month,wc$batting_order),sum,na.rm = T)
+wc_boundary = aggregate(wc$boundary,by=list(wc$match_id,wc$start_date,wc$venue,wc$innings, wc$batting_team,wc$bowling_team,wc$striker,wc$month,wc$batting_order),sum,na.rm = T)
 
-wc_oversbowled = aggregate(wc$count,by=list(wc$match_id,wc$start_date,wc$venue,wc$innings, wc$batting_team,wc$bowling_team,wc$striker,wc$month,wc$batting_order),sum,na.rm = T)
+wc_runsgiven = aggregate(wc$runs_off_bat,by=list(wc$match_id,wc$start_date,wc$venue,wc$innings, wc$batting_team,wc$bowling_team,wc$bowler,wc$month),sum,na.rm = T)
 
-wc_extras = aggregate(wc$extras,by=list(wc$match_id,wc$start_date,wc$venue,wc$innings, wc$batting_team,wc$bowling_team,wc$striker,wc$month,wc$batting_order),sum,na.rm = T)
+wc_oversbowled = aggregate(wc$count,by=list(wc$match_id,wc$start_date,wc$venue,wc$innings, wc$batting_team,wc$bowling_team,wc$bowler,wc$month),sum,na.rm = T)
 
+wc_extras = aggregate(wc$extras,by=list(wc$match_id,wc$start_date,wc$venue,wc$innings, wc$batting_team,wc$bowling_team,wc$bowler,wc$month),sum,na.rm = T)
+
+wc_wicket = aggregate(wc$wicket,by=list(wc$match_id,wc$start_date,wc$venue,wc$innings, wc$batting_team,wc$bowling_team,wc$bowler,wc$month),sum,na.rm = T)
 
 names(wc_run) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs")
 names(wc_balls) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls")
-names(wc_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","runs_given")
-names(wc_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","balls_bowled")
-names(wc_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","extras")
+names(wc_boundary) = c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order","boundary")
+names(wc_runsgiven) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","runs_given")
+names(wc_oversbowled) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","balls_bowled")
+names(wc_extras) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","extras")
+names(wc_wicket) = c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month","wicket")
 
 ```
 
 ```{r}
 
 wc_bat = merge(wc_run,wc_balls,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
+wc_bat = merge(wc_bat,wc_boundary,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
 wc_bat$strike_rate  = (wc_bat$runs/wc_bat$balls)*100
 
-wc_bowl = merge(wc_runsgiven,wc_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order"))
-wc_bowl = merge(wc_bowl,wc_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","striker","month","batting_order")) 
+wc_bowl = merge(wc_runsgiven,wc_oversbowled,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month"))
+wc_bowl = merge(wc_bowl,wc_extras,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
+wc_bowl = merge(wc_bowl,wc_wicket,by=c("match_id","start_date","venue","innings","batting_team","bowling_team","bowler","month")) 
+
 
 wc_bowl$overs_bowled = wc_bowl$balls_bowled/6
 wc_bowl$economy = wc_bowl$runs_given/wc_bowl$overs_bowled
+wc_bowl$bowling_average = wc_bowl$runs_given/wc_bowl$wicket
+wc_bowl$strike_rate = wc_bowl$balls_bowled/wc_bowl$wicket
 
+wc_bowl$bowling_average[!is.finite(wc_bowl$bowling_average)] <- NA
+wc_bowl$strike_rate[!is.finite(wc_bowl$strike_rate)] <- NA
 wc_bowl$type = "wc"
 wc_bat$type = "wc"
 ```

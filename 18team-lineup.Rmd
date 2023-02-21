@@ -129,7 +129,7 @@ odi_new = odi_new[-which(odi_new$match_id %in% match),]
 odi_new = merge(odi_new,members,by=c("match_id","team"))
 
 write.csv(odi_new,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/odi.csv",row.names = F)
-````
+```
 
 t20 match line up
 
