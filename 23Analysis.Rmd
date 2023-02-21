@@ -1,0 +1,252 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+Loading Datasets
+```{r setup, include=FALSE}
+rm(list = ls())
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/batsmen.csv")  
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bowler.csv")
+```
+
+
+
+Creating temp & gap days lags
+```{r,echo=FALSE}
+library(lubridate)
+library(tidyverse)
+
+bat$start_date = as.Date(bat$start_date)
+bowl$start_date = as.Date(bowl$start_date)
+
+bat_alt = bat %>% 
+  arrange(start_date) %>% 
+  group_by(striker) %>% 
+  mutate(occurence = row_number(),
+         change_temp = tempmax - lag(tempmax),
+         gap_days = c(NA,diff(start_date)))
+
+bowl_alt = bowl %>% 
+  arrange(start_date) %>% 
+  group_by(bowler) %>% 
+  mutate(occurence = row_number(),
+         change_temp = tempmax - lag(tempmax),
+         gap_days = c(NA,diff(start_date)))
+```
+
+
+Temp Bins [Using Change in Temp] & Gap Bins
+
+```{r}
+#Define control bins
+
+control_tempbin = "(-2,2]"
+control_gapbin ="[0,3]"
+
+# Dummies for each tempbin
+bat_alt$tempbin = cut(bat_alt$change_temp, breaks = c(-Inf,-2,2,Inf))
+bat_alt$gapbin = cut(bat_alt$gap_days, breaks = c(0,3,14,Inf),include.lowest = T)
+
+# Creating interaction
+bat_alt$interact_var <- interaction(bat_alt$tempbin, bat_alt$gapbin)
+
+# Dummies for each tempbin - Bowlers
+bowl_alt$tempbin = cut(bowl_alt$change_temp, breaks = c(-Inf,-2,2,Inf))
+bowl_alt$gapbin = cut(bowl_alt$gap_days, breaks = c(0,3,14,Inf),include.lowest = T)
+
+# Creating interaction - Bowlers
+bowl_alt$interact_var <- interaction(bowl_alt$tempbin, bowl_alt$gapbin)
+
+bowl_alt$interact_var = relevel(bowl_alt$interact_var,ref = "(-2,2].[0,3]")
+
+# Remove control bin from dummies
+#bat_alt$tempbin = factor(ifelse(bat_alt$tempbin == control_tempbin,0,bat_alt$tempbin))
+#bat_alt$gapbin = factor(ifelse(bat_alt$gapbin == control_gapbin,0,bat_alt$gapbin))
+#bat_alt$interact_var = factor(ifelse(bat_alt$tempbin == control_tempbin & bat_alt$gapbin == control_gapbin,0,bat_alt$interact_var))
+
+
+```
+
+Regression : Batsmen - Strike Rate - Home Temp Diff
+```{r,echo=FALSE}
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(boundary ~ interact_var,data = bat_alt, cluster = c("striker"))
+reg1 = feols(boundary ~ interact_var + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(boundary ~ interact_var + precip + humidity|batting_team,data = bat_alt, cluster = c("striker"))
+reg3 = feols(boundary ~ interact_var + precip + humidity |batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(boundary ~ interact_var + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+```
+
+
+
+```{r}
+etable(reg,reg1,reg2,reg3,reg4, headers = c("1", "2", "3","4","5"))
+```
+
+
+
+Regression : Bowler
+```{r,echo=FALSE}
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(wicket ~ interact_var,data = bowl_alt, cluster = c("bowler"))
+reg1 = feols(wicket ~ interact_var + precip + humidity ,data = bowl_alt , cluster = c("bowler"))
+reg2 = feols(wicket ~ interact_var + precip + humidity|batting_team,data = bowl_alt, cluster = c("bowler"))
+reg3 = feols(wicket ~ interact_var + precip + humidity |batting_team ,data = bowl_alt,cluster = c("bowler"))
+reg4 = feols(wicket ~ interact_var + precip + humidity + opp_team_temp|batting_team + type ,data = bowl_alt,cluster = c("bowler"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+```
+
+
+
+```{r}
+library(pander)
+etable(reg,reg1,reg2,reg3,reg4, headers = c("1", "2", "3","4","5"))
+```
+
+ECONOMY
+```{r}
+t = data.frame(summary(reg4)$coefficients)
+er = data.frame(summary(reg4)$se)
+coeff = cbind(t,er)
+names(coeff) = c("coef","se")
+coeff = tibble::rownames_to_column(coeff,var = "x")
+coeff = coeff[-c(9:11),]
+coeff$x = c("(-Inf,-2]*Short","(2,Inf)*Short","(-Inf,-2]*Med","(-2,2]*Med","(2,inf)*Med","(-Inf,-2]*Long","(-2,2]*Long","(2,Inf)*Long")
+coeff = coeff[order(coeff$x),]
+coeff = coeff[c(1,3,6,4,7,2,5,8),]
+coeff$z = 1:nrow(coeff)
+coeff$group = c("a","b","b","a","b","b","b","b")
+```
+
+
+```{r}
+plot = ggplot(coeff, aes(x = reorder(x,z), y = coef,colour = group)) +
+  geom_errorbar(aes(ymin = coef-2*se, ymax=coef+2*se), width = 0.2, linetype = "dashed") +
+  scale_colour_manual(values = c("red","blue"))+
+  geom_point(size = 3) +
+  labs(x = "", y = "Bowling Economy") +
+  theme(legend.position = "none")
+
+ggsave("economy.jpeg", plot, dpi = 300, width = 8, height = 6, units = "in")
+
+```
+
+
+EXTRAS
+```{r}
+t = data.frame(summary(reg4)$coefficients)
+er = data.frame(summary(reg4)$se)
+coeff = cbind(t,er)
+names(coeff) = c("coef","se")
+coeff = tibble::rownames_to_column(coeff,var = "x")
+coeff = coeff[-c(9:11),]
+coeff$x = c("(-Inf,-2]*Short","(2,Inf)*Short","(-Inf,-2]*Med","(-2,2]*Med","(2,inf)*Med","(-Inf,-2]*Long","(-2,2]*Long","(2,Inf)*Long")
+coeff = coeff[c(1,3,6,4,7,2,5,8),]
+coeff$z = 1:nrow(coeff)
+coeff$group = c("a","b","a","b","a","a","b","a")
+```
+
+
+```{r}
+plot = ggplot(coeff, aes(x = reorder(x,z), y = coef,colour = group)) +
+  geom_errorbar(aes(ymin = coef-2*se, ymax=coef+2*se), width = 0.2, linetype = "dashed") +
+  scale_colour_manual(values = c("red","blue"))+
+  geom_point(size = 3) +
+  labs(x = "", y = "EXTRAS") +
+  theme(legend.position = "none")
+
+ggsave("extras.jpeg", plot, dpi = 300, width = 8, height = 6, units = "in")
+plot
+```
+
+
+
+BINS FOR HOME TEMP
+
+```{r}
+bat_alt$home_diff = bat_alt$tempmax - bat_alt$home_airtemp
+
+# Dummies for each tempbin
+bat_alt$homebin = cut(bat_alt$home_diff, breaks = c(-Inf,2,5,10,Inf))
+
+bat_alt$interact_home = interaction(bat_alt$homebin, bat_alt$gapbin)
+
+bat_alt$interact_home = relevel(bat_alt$interact_home,ref = "(2,5].[0,3]")
+
+```
+
+
+Regression : Batsmen - Strike Rate - Home Temp Diff
+```{r,echo=FALSE}
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(strike_rate ~ interact_home,data = bat_alt, cluster = c("striker"))
+reg1 = feols(strike_rate ~ interact_home + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(strike_rate ~ interact_home + precip + humidity|batting_team,data = bat_alt, cluster = c("striker"))
+reg3 = feols(strike_rate ~ interact_home + precip + humidity |batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(strike_rate ~ interact_home + precip + humidity + opp_team_temp|batting_team + batting_order + type,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+```
+
+
+BINS FOR HOME TEMP
+
+```{r}
+bowl_alt$home_diff = bowl_alt$tempmax - bowl_alt$home_airtemp
+
+# Dummies for each tempbin
+bowl_alt$homebin = cut(bowl_alt$home_diff, breaks = c(-Inf,2,5,10,Inf))
+
+bowl_alt$interact_home = interaction(bowl_alt$homebin, bowl_alt$gapbin)
+
+bowl_alt$interact_home = relevel(bowl_alt$interact_home,ref = "(2,5].[0,3]")
+
+```
+
+
+Regression : Batsmen - Strike Rate - Home Temp Diff
+```{r,echo=FALSE}
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(bowling_average ~ interact_home,data = bowl_alt, cluster = c("bowler"))
+reg1 = feols(bowling_average ~ interact_home + precip + humidity ,data = bowl_alt , cluster = c("bowler"))
+reg2 = feols(bowling_average ~ interact_home + precip + humidity|batting_team,data = bowl_alt, cluster = c("bowler"))
+reg3 = feols(bowling_average ~ interact_home + precip + humidity |batting_team  ,data = bowl_alt,cluster = c("bowler"))
+reg4 = feols(bowling_average ~ interact_home + precip + humidity + opp_team_temp|batting_team  + type,data = bowl_alt,cluster = c("bowler"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+```
+
+
+
+```{r}
+etable(reg,reg1,reg2,reg3,reg4, headers = c("1", "2", "3","4","5"))
+```
+
+
+
+

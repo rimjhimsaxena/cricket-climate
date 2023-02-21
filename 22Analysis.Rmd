@@ -1,0 +1,294 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+Loading Datasets
+```{r setup, include=FALSE}
+rm(list = ls())
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/batsmen.csv")  
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bowler.csv")
+```
+
+Creating temp & gap days lags
+```{r,echo=FALSE}
+library(lubridate)
+library(tidyverse)
+#bowl_alt = bowl_alt[!duplicated(bowl_alt[,c("bowler","start_date","match_id","bowling_team","innings")]),]
+
+bat$start_date = as.Date(bat$start_date)
+bowl$start_date = as.Date(bowl$start_date)
+
+bat_alt = bat %>% 
+  arrange(start_date) %>% 
+  group_by(striker) %>% 
+  mutate(occurence = row_number())
+
+bowl_alt = bowl %>% 
+  arrange(start_date) %>% 
+  group_by(bowler) %>% 
+  mutate(occurence = row_number())
+
+# Lag of temp - batsmen
+bat_alt <- bat_alt %>%
+  arrange(start_date) %>% 
+  group_by(striker) %>%
+  mutate(change_temp = tempmax - lag(tempmax)) 
+
+# Lag of temp - bowler
+bowl_alt <- bowl_alt %>%
+  arrange(start_date) %>% 
+  group_by(bowler) %>%
+  mutate(change_temp = tempmax - lag(tempmax)) 
+
+bat_alt <- bat_alt %>%
+  arrange(start_date) %>% 
+  group_by(striker) %>%
+  mutate(gap_days = c(NA,diff(start_date))) 
+
+bowl_alt <- bowl_alt %>%
+  arrange(start_date) %>% 
+  group_by(bowler) %>%
+  mutate(gap_days = c(NA,diff(start_date))) 
+
+```
+
+Temperature Bins
+```{r}
+library(cutr)
+# Create uneven temperature bins
+temp_bins <- c(-Inf,-15,-10, -5, -2.5, 2.5, 5, 10, 15,Inf)
+
+bat_alt$bin1 = ifelse(bat_alt$change_temp<= -15,1,0)
+bat_alt$bin2 = ifelse(bat_alt$change_temp> -15 & bat_alt$change_temp<= -10,1,0)
+bat_alt$bin3 = ifelse(bat_alt$change_temp> -10 & bat_alt$change_temp<= -5,1,0)
+bat_alt$bin4 = ifelse(bat_alt$change_temp> -5 & bat_alt$change_temp<= -2.5,1,0)
+bat_alt$bin5 = ifelse(bat_alt$change_temp> -2.5 & bat_alt$change_temp<= 2.5,1,0)
+bat_alt$bin6 = ifelse(bat_alt$change_temp> 2.5 & bat_alt$change_temp<= 5,1,0)
+bat_alt$bin7 = ifelse(bat_alt$change_temp> 5 & bat_alt$change_temp<= 10,1,0)
+bat_alt$bin8 = ifelse(bat_alt$change_temp> 10 & bat_alt$change_temp<= 15,1,0)
+bat_alt$bin9 = ifelse(bat_alt$change_temp> 15 ,1,0)
+
+
+bowl_alt$bin1 = ifelse(bowl_alt$change_temp<= -15,1,0)
+bowl_alt$bin2 = ifelse(bowl_alt$change_temp> -15 & bowl_alt$change_temp<= -10,1,0)
+bowl_alt$bin3 = ifelse(bowl_alt$change_temp> -10 & bowl_alt$change_temp<= -5,1,0)
+bowl_alt$bin4 = ifelse(bowl_alt$change_temp> -5 & bowl_alt$change_temp<= -2.5,1,0)
+bowl_alt$bin5 = ifelse(bowl_alt$change_temp> -2.5 & bowl_alt$change_temp<= 2.5,1,0)
+bowl_alt$bin6 = ifelse(bowl_alt$change_temp> 2.5 & bowl_alt$change_temp<= 5,1,0)
+bowl_alt$bin7 = ifelse(bowl_alt$change_temp> 5 & bowl_alt$change_temp<= 10,1,0)
+bowl_alt$bin8 = ifelse(bowl_alt$change_temp> 10 & bowl_alt$change_temp<= 15,1,0)
+bowl_alt$bin9 = ifelse(bowl_alt$change_temp> 15 ,1,0)
+
+
+bat_alt$tempbin1 = ifelse(bat_alt$change_temp< -2,1,0)
+bat_alt$tempbin2 = ifelse(bat_alt$change_temp>= -2 & bat_alt$change_temp<= 2,1,0)
+bat_alt$tempbin3 = ifelse(bat_alt$change_temp> 2,1,0)
+
+temp_labels <- c("(-inf,-10)", "[-10,-2.5)", "[-2.5,2.5]", "(2.5,10]", "(10,inf)")
+
+bat_alt <- bat_alt %>% 
+  mutate(temp_bin = cut(change_temp, breaks = temp_bins, labels = temp_labels))
+
+bowl_alt <- bowl_alt %>% 
+  mutate(temp_bin = cut(change_temp, breaks = temp_bins, labels = temp_labels))
+```
+
+
+Gap day Bins
+
+```{r}
+gap = c(0,3,10,Inf)
+
+bat_alt$gap = cut(bat_alt$gap_days,breaks = gap)
+control_gap = "(10,Inf]"
+
+bat_alt$control_gap = ifelse(bat_alt$gap == control_gap,1,0)
+
+temp = c(-Inf,-2,2,Inf)
+bat_alt$tempbin = cut(bat_alt$change_temp,breaks = temp)
+control_temp = "(-2,2]"
+
+bat_alt$control_temp = ifelse(bat_alt$tempbin == control_temp,1,0)
+
+bat_alt$control_gap <- factor(ifelse(bat_alt$control_gap == control_gap, 0, bat_alt$control_gap))
+bat_alt$control_temp <- factor(ifelse(bat_alt$control_temp == control_temp, 0, bat_alt$control_temp))
+
+
+bat_alt$gap1 = ifelse(bat_alt$gap_days >=0 & bat_alt$gap_days <= 2,1,0)
+bat_alt$gap2 = ifelse(bat_alt$gap_days > 2 & bat_alt$gap_days <= 7,1,0)
+bat_alt$gap3 = ifelse(bat_alt$gap_days > 7 & bat_alt$gap_days <= 14,1,0)
+bat_alt$gap4 = ifelse(bat_alt$gap_days > 14,1,0)
+
+
+bowl_alt$gap1 = ifelse(bowl_alt$gap_days >=0 & bowl_alt$gap_days <= 2,1,0)
+bowl_alt$gap2 = ifelse(bowl_alt$gap_days > 2 & bowl_alt$gap_days <= 7,1,0)
+bowl_alt$gap3 = ifelse(bowl_alt$gap_days > 7 & bowl_alt$gap_days <= 14,1,0)
+bowl_alt$gap4 = ifelse(bowl_alt$gap_days > 14,1,0)
+
+bat_alt$gap = as.factor(bat_alt$gap)
+bat_alt$gap = factor(bat_alt$gap,levels = c(0,1,2,3), labels = c(">17 days","1-3 days","4-10 days","11-17 days"))
+table(bat_alt$gap)
+
+
+bowl_alt$gap = as.factor(bowl_alt$gap)
+bowl_alt$gap = factor(bowl_alt$gap,levels = c(0,1,2,3), labels = c(">17 days","1-3 days","4-10 days","11-17 days"))
+table(bowl_alt$gap)
+```
+
+
+Regression : Batsmen - Strike Rate
+```{r,echo=FALSE}
+bat_alt$batting_order = as.factor(bat_alt$batting_order)
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(strike_rate ~ temp_bin * gap,data = bat_alt, cluster = c("striker"))
+reg1 = feols(strike_rate ~ temp_bin * gap + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(strike_rate ~ temp_bin * gap + precip + humidity|batting_team,data = bat_alt, cluster = c("striker"))
+reg3 = feols(strike_rate ~ temp_bin* gap + precip + humidity |batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(strike_rate ~ temp_bin* gap + precip + humidity + avg_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+```
+
+
+```{r}
+etable(reg,reg1,reg2,reg3,reg4, headers = c("1", "2", "3","4","5"))
+```
+
+
+Regression : Batsmen - Strike Rate - MORE TEMP BINS
+```{r,echo=FALSE}
+bat_alt$batting_order = as.factor(bat_alt$batting_order)
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(runs ~ bin1 + bin2 + bin3 + bin4 + bin6 + bin7 + bin8 + bin9,data = bat_alt, cluster = c("striker"))
+reg1 = feols(runs ~ bin1 + bin2 + bin3 + bin4 + bin6 + bin7 + bin8 + bin9 + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(runs ~ bin1 + bin2 + bin3 + bin4 + bin6 + bin7 + bin8 + bin9 + precip + humidity|batting_team,data = bat_alt, cluster = c("striker"))
+reg3 = feols(runs ~ bin1 + bin2 + bin3 + bin4 + bin6 + bin7 + bin8 + bin9 + precip + humidity |batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(runs ~ bin1 + bin2 + bin3 + bin4 + bin6 + bin7 + bin8 + bin9 + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg5 = feols(runs ~ bin1 + bin2 + bin3 + bin4 + bin6 + bin7 + bin8 + bin9 + precip + humidity + opp_team_temp + gap_days|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+```
+
+
+```{r}
+etable(reg,reg1,reg2,reg3,reg4,reg5, headers = c("1", "2", "3","4","5","6"))
+```
+
+Regression : Batsmen - Strike Rate - MORE TEMP BINS
+```{r,echo=FALSE}
+bat_alt$batting_order = as.factor(bat_alt$batting_order)
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(strike_rate ~ tempbin1*gap2 + tempbin1*gap3 + tempbin1*gap4 + tempbin3*gap2 + tempbin3*gap3 + tempbin3*gap4 ,data = bat_alt, cluster = c("striker"))
+reg1 = feols(strike_rate ~ tempbin1*gap2 + tempbin1*gap3 + tempbin1*gap4 + tempbin3*gap2 + tempbin3*gap3 + tempbin3*gap4  + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(strike_rate ~ tempbin1*gap2 + tempbin1*gap3 + tempbin1*gap4 + tempbin3*gap2 + tempbin3*gap3 + tempbin3*gap4  + precip + humidity|batting_team,data = bat_alt, cluster = c("striker"))
+reg3 = feols(strike_rate ~ tempbin1*gap2 + tempbin1*gap3 + tempbin1*gap4 + tempbin3*gap2 + tempbin3*gap3 + tempbin3*gap4  + precip + humidity |batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(strike_rate ~ tempbin1*gap2 + tempbin1*gap3 + tempbin1*gap4 + tempbin3*gap2 + tempbin3*gap3 + tempbin3*gap4  + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg5 = feols(strike_rate ~ tempbin1*gap2 + tempbin1*gap3 + tempbin1*gap4 + tempbin3*gap2 + tempbin3*gap3 + tempbin3*gap4 + precip + humidity + opp_team_temp + gap_days|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+```
+
+
+```{r}
+etable(reg,reg1,reg2,reg3,reg4,reg5, headers = c("1", "2", "3","4","5","6"))
+```
+
+
+Regression : Batsmen - Strike Rate - MORE TEMP BINS
+```{r,echo=FALSE}
+bat_alt$batting_order = as.factor(bat_alt$batting_order)
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(strike_rate ~ tempbin*gap ,data = bat_alt, cluster = c("striker"))
+reg1 = feols(strike_rate ~ tempbin*gap  + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(strike_rate ~ tempbin*gap  + precip + humidity|batting_team,data = bat_alt, cluster = c("striker"))
+reg3 = feols(strike_rate ~ tempbin*gap   + precip + humidity |batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(strike_rate ~ tempbin*gap   + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg5 = feols(strike_rate ~ tempbin*gap  + precip + humidity + opp_team_temp + gap_days|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4,reg5)
+```
+
+
+
+```{r}
+etable(reg,reg1,reg2,reg3,reg4,reg5, headers = c("1", "2", "3","4","5","6"))
+```
+
+
+```{r}
+bat_alt$home_diff = bat_alt$tempmax - bat_alt$home_airtemp
+bat_alt$homebin1 = ifelse(bat_alt$home_diff<2,1,0)
+bat_alt$homebin2 = ifelse(bat_alt$home_diff>= 2 & bat_alt$home_diff<= 5,1,0)
+bat_alt$homebin3 = ifelse(bat_alt$home_diff> 5,1,0)
+
+
+bat_alt$gap1 = ifelse(bat_alt$gap_days>=0 & bat_alt$gap_days<=2,1,0)
+bat_alt$gap2 = ifelse(bat_alt$gap_days> 2 & bat_alt$gap_days<=10,1,0)
+bat_alt$gap3 = ifelse(bat_alt$gap_days>10,1,0)
+
+bat_alt$int1 = bat_alt$homebin1 * bat_alt$gap1
+bat_alt$int2 = bat_alt$homebin1 * bat_alt$gap2
+bat_alt$int3 = bat_alt$homebin1 * bat_alt$gap3
+bat_alt$int4 = bat_alt$homebin2 * bat_alt$gap1
+bat_alt$int5 = bat_alt$homebin2 * bat_alt$gap2
+bat_alt$int6 = bat_alt$homebin2 * bat_alt$gap3
+bat_alt$int7 = bat_alt$homebin3 * bat_alt$gap1
+bat_alt$int8 = bat_alt$homebin3 * bat_alt$gap2
+bat_alt$int9 = bat_alt$homebin3 * bat_alt$gap3
+
+
+# Create uneven temperature bins
+hometemp_bins <- c(-Inf, -10, -2.5, 2.5, 10, Inf)
+temp_labels <- c("(-inf,-10)", "[-10,-2.5)", "[-2.5,2.5]", "(2.5,10]", "(10,inf)")
+bat_alt <- bat_alt %>% 
+  mutate(hometemp_bins = cut(home_diff, breaks = hometemp_bins, labels = temp_labels))
+
+table(bat_alt$hometemp_bins)
+```
+
+
+Regression : Batsmen - Strike Rate - Home Temp Diff
+```{r,echo=FALSE}
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(strike_rate ~ int1 + int2 + int4 + int5 + int6 + int7 + int8 + int9,data = bat_alt, cluster = c("striker"))
+reg1 = feols(strike_rate ~ int1 + int2 + int4 + int5 + int6 + int7 + int8 + int9 + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(strike_rate ~ int1 + int2 + int4 + int5 + int6 + int7 + int8 + int9   + precip + humidity|batting_team,data = bat_alt, cluster = c("striker"))
+reg3 = feols(strike_rate ~ int1 + int2 + int4 + int5 + int6 + int7 + int8 + int9  + precip + humidity |batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(strike_rate ~ int1 + int2 + int4 + int5 + int6 + int7 + int8 + int9  + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg5 = feols(strike_rate ~ int1 + int2 + int4 + int5 + int6 + int7 + int8 + int9  + precip + humidity + opp_team_temp + gap_days|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+```
+
+
+```{r}
+etable(reg,reg1,reg2,reg3,reg4, headers = c("1", "2", "3","4","5"))
+```

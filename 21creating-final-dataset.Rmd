@@ -1,0 +1,170 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+Batsmen
+```{r setup, include=FALSE}
+rm(list = ls())
+ipl_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/ipl_bat.csv")
+t20_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/t20_bat.csv")
+odi_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/odi_bat.csv")
+test_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/test_bat.csv")
+```
+
+Bowlers
+```{r}
+ipl_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/ipl_bowl.csv")
+t20_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/t20_bowl.csv")
+odi_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/odi_bowl.csv")
+test_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/test_bowl.csv")
+
+```
+
+WC players
+```{r}
+wc_bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/wc_bat.csv")
+wc_bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/panel-player-more/with-batting-order/wc_bowl.csv")
+
+wc_teams = c("Namibia","Sri Lanka","Netherlands","United Arab Emirates","Scotland","West Indies","Ireland","Zimbabwe","New Zealand","England","Australia","Afghanistan","India","Pakistan","South Africa","Bangladesh")
+
+wc_bat = wc_bat[which(wc_bat$batting_team %in% wc_teams),]
+wc_bowl = wc_bowl[which(wc_bowl$bowling_team %in% wc_teams),]
+
+batsmen = unique(wc_bat$striker)
+bowler = unique(wc_bowl$bowler)
+```
+
+Cutting all the data by WC players
+```{r}
+ipl_bat = ipl_bat[which(ipl_bat$striker %in% batsmen),]
+ipl_bowl = ipl_bowl[which(ipl_bowl$bowler %in% bowler),]
+
+odi_bat = odi_bat[which(odi_bat$striker %in% batsmen),] 
+odi_bowl = odi_bowl[which(odi_bowl$bowler %in% bowler),]
+
+t20_bat = t20_bat[which(t20_bat$striker %in% batsmen),]
+t20_bowl = t20_bowl[which(t20_bowl$bowler %in% bowler),]
+
+test_bat = test_bat[which(test_bat$striker %in% batsmen),]
+test_bowl = test_bowl[which(test_bowl$bowler %in% bowler),]
+```
+
+Finalizing all games in to one data frame
+
+```{r}
+dat1 = rbind(ipl_bat,odi_bat)
+dat2 = rbind(dat1,t20_bat)
+dat3 = rbind(dat2,test_bat)
+dat = rbind(dat3,wc_bat)
+
+
+df1 = rbind(ipl_bowl,odi_bowl)
+df2 = rbind(df1,t20_bowl)
+df3 = rbind(df2,test_bowl)
+df = rbind(df3,wc_bowl)
+
+```
+
+Writing datsets
+```{r}
+write.csv(dat,"~/OneDrive - UCB-O365/CricketCC/Data/final/with-batting-order/batsmen.csv",row.names = F)
+write.csv(df,"~/OneDrive - UCB-O365/CricketCC/Data/final/with-batting-order/bowler.csv",row.names = F)
+```
+
+Adding opposing team temp
+
+```{r}
+temp = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/all-team-avgtemp.csv")
+names(temp)[6] = "opp_team_temp" 
+
+temp2 = temp
+
+names(temp)[3] = "bowling_team"
+names(temp2)[3] = "batting_team"
+
+dat = merge(dat,temp,by=c("match_id","bowling_team","venue","start_date","innings"))
+df = merge(df,temp,by=c("match_id","bowling_team","venue","start_date","innings"))
+```
+
+Loading temp data
+
+```{r}
+heat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/loc-climate/temp-team.csv")
+heat$datetime = as.Date(heat$datetime)
+names(heat)[2] = "start_date"
+names(heat)[1] = "venue"
+```
+
+Adding temp for each player
+
+```{r}
+dat$start_date = as.Date(dat$start_date)
+dat = merge(dat,heat,by=c("venue","start_date"))
+
+df$start_date = as.Date(df$start_date)
+df = merge(df,heat,by=c("venue","start_date"))
+
+```
+
+Writing datasets
+
+```{r}
+write.csv(dat,"~/OneDrive - UCB-O365/CricketCC/Data/final/wbo-oppteam-temp/batsmen.csv",row.names = F)
+write.csv(df,"~/OneDrive - UCB-O365/CricketCC/Data/final/wbo-oppteam-temp/bowlers.csv",row.names = F)
+```
+
+home locations temp
+
+```{r}
+library(dplyr)
+bat_home = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/home/batsmen-clim-loc.csv")
+bowl_home = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/home/bowler-clim-loc.csv")
+bat_home = bat_home[,c(9,4:7)]
+bowl_home = bowl_home[,c(9,4:7)]
+
+
+
+bat_home$month = substr(bat_home$date,6,7)
+bat_home$day = substr(bat_home$date,9,10)
+bat_home$month = ifelse(bat_home$month=="01" & bat_home$day== "31", "02",bat_home$month)
+
+
+bowl_home$month = substr(bowl_home$date,6,7)
+bowl_home$day = substr(bowl_home$date,9,10)
+bowl_home$month = ifelse(bowl_home$month=="01" & bowl_home$day== "31", "02",bowl_home$month)
+
+
+bat_home_ag = bat_home %>% 
+  group_by(batsmen,month) %>% 
+  summarise(airtemp = mean(airtemp,na.rm = T),
+            precip = mean(precip,na.rm = T),
+            humidity = mean(humidity,na.rm = T))
+
+bat_home_ag$airtemp = bat_home_ag$airtemp - 273.15
+
+names(bat_home_ag) = c("striker","month","home_airtemp","home_precip","home_humidity")
+
+bowl_home_ag = bowl_home %>% 
+  group_by(bowler,month) %>% 
+  summarise(airtemp = mean(airtemp,na.rm = T),
+            precip = mean(precip,na.rm = T),
+            humidity = mean(humidity,na.rm = T))
+
+bowl_home_ag$airtemp = bowl_home_ag$airtemp - 273.15
+names(bowl_home_ag) = c("bowler","month","home_airtemp","home_precip","home_humidity")
+
+bat_home_ag$month = as.integer(bat_home_ag$month)
+bowl_home_ag$month = as.integer(bowl_home_ag$month)
+
+dat = merge(dat,bat_home_ag,by=c("striker","month"))
+df = merge(df,bowl_home_ag,by=c("bowler","month"))
+```
+
+Final datasets
+```{r}
+write.csv(dat,"~/OneDrive - UCB-O365/CricketCC/Data/final/batsmen.csv",row.names = F)
+write.csv(df,"~/OneDrive - UCB-O365/CricketCC/Data/final/bowler.csv",row.names = F)
+```

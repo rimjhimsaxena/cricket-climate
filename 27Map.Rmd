@@ -1,0 +1,98 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+library(tidyverse)
+library(sf)
+library(mapview)
+library(maps)
+library(ggplot2)
+library(viridis)
+library(raster)
+
+
+a = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/all-game-geoloc.csv")
+#mapview(a, xcol = "long", ycol = "lat", crs = 4269, grid = FALSE)
+
+a = a[,c(1,3,2)]
+
+game_sf <- st_as_sf(a, coords = c("Longitude","Latitude"),  crs = 4326)
+#mapview(wc_sf, map.types = "Stamen.Toner") 
+
+
+
+shp = st_read("~/Downloads/world_geolev1_2021/world_geolev1_2021.shp")
+
+#saveRDS(shp,"~/Downloads/world_geolev1_2021/world_geolev1_2021.shp.rds")
+
+
+poly <- readRDS("~/Downloads/world_geolev1_2021/world_geolev1_2021.shp.rds") 
+
+
+game_shp_map = st_transform(game_sf,crs = 4326)
+
+game_shp_df <- game_shp_map%>%
+  mutate( lat= st_coordinates(game_shp_map)[,2],
+          lon = st_coordinates(game_shp_map)[,1])
+
+game_shp_df
+
+game_shp_df$freq = 1
+
+map <- ggplot() + 
+  geom_sf(data = poly, fill = NA, colour = "bisque3", size = 0.1) + 
+  geom_point(data = game_shp_df,aes(lon,lat),color = alpha("red",0.5),size = game_shp_df$freq) 
+
+ggsave("game_map.jpeg", map, dpi = 300, width = 8, height = 6, units = "in")
+
+```
+
+```{r}
+wc_shp_df$freq = as.numeric(wc_shp_df$freq)
+wc_shp_df$freq_norm = wc_shp_df$freq/7
+
+table(wc_shp_df$venue)
+
+venue_short = c("Adelaide","Hobart","Brisbane","Victoria","Melbourne","Perth","Sydney")
+
+wc_shp_df = cbind(wc_shp_df,venue_short)
+
+ggplot()+
+geom_sf(data = aus, fill = NA, colour = "blue", size = 0.25)+
+geom_sf(data = wc_shp_df,color = alpha("red", 0.5),size = wc_shp_df$freq) +
+geom_sf_text(data = wc_shp_df, aes(label = wc_shp_df$venue_short)) +
+theme_minimal()
+
+## Another map
+b = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/venue_prewc_lastgame.csv")
+prewc_sf <- st_as_sf(b, coords = c("long", "lat"),  crs = 4326)
+
+prewc_shp_map = st_transform(prewc_sf,crs = 4326)
+
+prewc_shp_df <- prewc_shp_map%>%
+  mutate( lat= st_coordinates(prewc_shp_map)[,1],
+          lon = st_coordinates(prewc_shp_map)[,2])
+prewc_shp_df
+
+prewcvenue_short = c("Adelaide","Oman","Port Moresby","Delhi","Guwahati","Bay Oval","Lucknow","Brisbane","Ayr","Cairns",
+                     "Belfast","Bristol","Dubai","Lahore","Galle","Edinburgh","Thiruvananthpuram","ChristChurch","Hazare","Rotterdam",
+                     "Indore","Ranchi","Barbados","London","Aberdeen","Canberra","Karachi","Manchester","Pallekele","Perth","Bulawayo",
+                     "Colombo","Townsville","Jamaica","Hague","Sydney","Southampton","Dublin","Townsville","Kirtipur","Windhoek")
+
+prewc_shp_df = cbind(prewc_shp_df,prewcvenue_short)
+
+ggplot()+
+  geom_sf(data = shp, fill = NA, colour = "blue", size = 0.25)+
+  geom_sf(data = prewc_shp_df,color = alpha("red", 0.5),size = prewc_shp_df$freq) +
+  geom_sf_text(data = prewc_shp_df, aes(label = prewc_shp_df$prewcvenue_short)) +
+  theme_minimal()
+
+
+
+
+```

@@ -1,0 +1,115 @@
+---
+title: "Untitled"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+Loading Datasets
+
+```{r setup, include=FALSE}
+rm(list = ls())
+bat = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/batsmen.csv")  
+bowl = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/final/bowler.csv")
+```
+
+Creating temp & gap days lags
+
+```{r,echo=FALSE}
+library(lubridate)
+library(tidyverse)
+
+bat$start_date = as.Date(bat$start_date)
+bowl$start_date = as.Date(bowl$start_date)
+
+bat_alt = bat %>% 
+  arrange(start_date) %>% 
+  group_by(striker) %>% 
+  mutate(home_change = tempmax - home_airtemp,
+         gap_days = c(NA,diff(start_date)))
+
+bowl_alt = bowl %>% 
+  arrange(start_date) %>% 
+  group_by(bowler) %>% 
+  mutate(home_change = tempmax - home_airtemp,
+         gap_days = c(NA,diff(start_date)))
+```
+
+```{r}
+bat_alt$heat = ifelse(bat_alt$home_change<0,0,bat_alt$home_change)
+bowl_alt$heat = ifelse(bowl_alt$home_change<0,0,bowl_alt$home_change)
+
+bat_alt = bat_alt %>% 
+  arrange(start_date) %>% 
+  group_by(striker) %>% 
+  mutate(accum = cumsum(heat))
+
+bowl_alt = bowl_alt %>% 
+  arrange(start_date) %>% 
+  group_by(bowler) %>% 
+  mutate(accum = cumsum(heat))
+```
+
+```{r}
+
+bat_alt = bat_alt[,c(1:17,23,24,47:53)]
+bowl_alt = bowl_alt[,c(1:20,26,27,50:56)]
+
+# Dummies - Batsmen
+bat_alt$tempbin = cut(bat_alt$accum, breaks = c(0,50,110,Inf),include.lowest = T)
+bat_alt$gapbin = cut(bat_alt$gap_days, breaks = c(0,3,14,Inf),include.lowest = T)
+
+# Creating interaction - Batsmen
+bat_alt$interact_var <- interaction(bat_alt$tempbin, bat_alt$gapbin)
+bat_alt$interact_var = relevel(bat_alt$interact_var,ref = "[0,50].[0,3]")
+
+# Dummies - Bowlers
+bowl_alt$tempbin = cut(bowl_alt$accum, breaks = c(0,50,110,Inf),include.lowest = T)
+bowl_alt$gapbin = cut(bowl_alt$gap_days, breaks = c(0,3,14,Inf),include.lowest = T)
+
+# Creating interaction - Bowlers
+bowl_alt$interact_var <- interaction(bowl_alt$tempbin, bowl_alt$gapbin)
+bowl_alt$interact_var = relevel(bowl_alt$interact_var,ref = "[0,50].[0,3]")
+
+```
+
+Regression : Batsmen - Strike Rate - Home Temp Diff
+
+```{r,echo=FALSE}
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(boundary ~ interact_var ,data = bat_alt, cluster = c("striker"))
+reg1 = feols(boundary ~ interact_var + precip + humidity ,data = bat_alt , cluster = c("striker"))
+reg2 = feols(boundary ~ interact_var + precip + humidity ,data = bat_alt, cluster = c("striker"))
+reg3 = feols(boundary ~ interact_var + precip + humidity |batting_order,data = bat_alt,cluster = c("striker"))
+reg4 = feols(boundary ~ interact_var + precip + humidity + opp_team_temp|batting_order + type ,data = bat_alt,cluster = c("striker"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+
+etable(reg,reg1,reg2,reg3,reg4, headers = c("1", "2", "3","4","5"))
+
+```
+
+```{r,echo=FALSE}
+
+library(fixest)
+library(stargazer)
+library(modelsummary)
+library(kableExtra)
+
+reg = feols(strike_rate ~ interact_var,data = bowl_alt, cluster = c("bowler"))
+reg1 = feols(strike_rate ~ interact_var + precip + humidity ,data = bowl_alt , cluster = c("bowler"))
+reg2 = feols(strike_rate ~ interact_var + precip + humidity|bowling_team ,data = bowl_alt,cluster = c("bowler"))
+reg3 = feols(strike_rate ~ interact_var + precip + humidity + opp_team_temp|type,data = bowl_alt,cluster = c("bowler"))
+reg4 = feols(strike_rate ~ interact_var + precip + humidity + opp_team_temp|bowling_team + type,data = bowl_alt,cluster = c("bowler"))
+
+regs = list(reg,reg1,reg2,reg3,reg4)
+
+etable(reg,reg1,reg2,reg3,reg4, headers = c("1", "2", "3","4","5"))
+```
+
+

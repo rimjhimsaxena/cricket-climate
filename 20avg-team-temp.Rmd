@@ -1,0 +1,50 @@
+---
+title: "avg-temp-team"
+author: "Rimjhim Saxena"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+all = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/allgame-lineup.csv")
+temp = read.csv("~/OneDrive - UCB-O365/CricketCC/Data/loc-climate/temp-team.csv")
+```
+
+
+bring all dates to same format & merge to get dataset
+
+```{r}
+temp$datetime = as.Date(temp$datetime)
+all$start_date = as.Date(all$start_date)
+
+names(temp)[2] = "start_date"
+names(temp)[1] = "venue"
+ 
+m = merge(all,temp,by=c("venue","start_date"),all.x = T)
+
+write.csv(m,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/all-game-temp.csv",row.names = F)
+```
+
+
+
+```{r}
+library(dplyr)
+m$start_date = as.Date(m$start_date)
+
+all_alt <- m %>%
+  arrange(start_date) %>% 
+  group_by(player) %>%
+  mutate(change_temp = tempmax - lag(tempmax,na.rm = T)) 
+
+ag = all_alt %>% 
+  group_by(match_id,innings,team,venue,start_date) %>% 
+  summarise(avg_team_temp = mean(change_temp,na.rm = T))
+write.csv(ag,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/all-team-avgtemp.csv",row.names = F)
+
+all_alt = merge(all_alt,ag,by=c("match_id","innings","team","venue","start_date"))
+
+alt = all_alt[,c(1:10,40,41)]
+write.csv(all_alt,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/all-game-avg-team-temp.csv",row.names = F)
+write.csv(alt,"~/OneDrive - UCB-O365/CricketCC/Data/team-lineup/all-game-avgtemp-slim.csv",row.names = F)
+```
