@@ -33,6 +33,8 @@ bowl = read.csv("~/OneDrive - UCB-O365/01CURRENT/CricketCC/Data/final/bowler.csv
 library(lubridate)
 library(tidyverse)
 library(fixest)
+library(caret)
+library(gt)
 
 bat$start_date = as.Date(bat$start_date)
 bowl$start_date = as.Date(bowl$start_date)
@@ -79,7 +81,7 @@ bat_alt$interact_home <- interaction(bat_alt$accbin, bat_alt$gapbin)
 bat_alt$interact_home = relevel(bat_alt$interact_home,ref = "(100,Inf].(3,14]")
 
 bat_alt$interact_var <- interaction(bat_alt$tempbin, bat_alt$gapbin)
-bat_alt$interact_var = relevel(bat_alt$interact_var,ref = "(-2,2].[0,3]")
+bat_alt$interact_var = relevel(bat_alt$interact_var,ref = "(-2,2].(14,Inf]")
 
 # Dummies - Bowlers
 bowl_alt$accbin = cut(bowl_alt$accum, breaks = c(0,100,Inf),include.lowest = T)
@@ -91,7 +93,7 @@ bowl_alt$interact_home <- interaction(bowl_alt$accbin, bowl_alt$gapbin)
 bowl_alt$interact_home = relevel(bowl_alt$interact_home,ref = "(100,Inf].(3,14]")
 
 bowl_alt$interact_var <- interaction(bowl_alt$tempbin, bowl_alt$gapbin)
-bowl_alt$interact_var = relevel(bowl_alt$interact_var,ref = "(-2,2].[0,3]")
+bowl_alt$interact_var = relevel(bowl_alt$interact_var,ref = "(-2,2].(14,Inf]")
 
 # Excessive Temp shock 
 bat_alt$tempshock = bat_alt$tempmax - 25
@@ -106,6 +108,113 @@ bowl_alt$shock = ifelse(bowl_alt$tempshock>0,1,0)
 
 bowl_alt$interact_shock <- interaction(bowl_alt$shock, bowl_alt$gapbin)
 bowl_alt$interact_shock = relevel(bowl_alt$interact_shock,ref = "0.(14,Inf]")
+
+# World Cup Games - Batsmen
+bat_alt$wc = ifelse(bat_alt$start_date>= "2022-10-16" & bat_alt$start_date<= "2022-11-13",1,0)
+ausbat = bat_alt$striker[which(bat_alt$batting_team=="Australia" & bat_alt$wc==1)]
+ausbat = unique(ausbat)
+
+bat_alt$aus = ifelse(bat_alt$striker %in% ausbat,1,0)
+bat_alt$treatment = ifelse(bat_alt$aus==1,0,1)
+
+bat_alt$did = bat_alt$wc * bat_alt$treatment
+
+# WC - Bowlers
+bowl_alt$wc = ifelse(bowl_alt$start_date>= "2022-10-16" & bowl_alt$start_date<= "2022-11-13",1,0)
+ausbowl = bowl_alt$bowler[which(bowl_alt$bowling_team=="Australia" & bowl_alt$wc==1)]
+ausbowl = unique(ausbowl)
+
+bowl_alt$aus = ifelse(bowl_alt$bowler %in% ausbowl,1,0)
+bowl_alt$treatment = ifelse(bowl_alt$aus==1,0,1)
+
+bowl_alt$did = bowl_alt$wc * bowl_alt$treatment
+
+# Dummy for each team
+
+
+bat_alt = bat_alt %>% 
+  mutate(team = case_when(
+    batting_team == "Afghanistan" ~ "AFG",
+    batting_team == "Australia" ~ "AUS",
+    batting_team == "Bangladesh" ~ "BAN",
+    batting_team == "Chennai Super Kings" ~ "CSK",
+    batting_team == "Delhi Capitals" ~ "DC",
+    batting_team == "England" ~ "ENG",
+    batting_team == "Gujarat Titans" ~ "GT",
+    batting_team == "India" ~ "IND",
+    batting_team == "Ireland" ~ "IRE",
+    batting_team == "Kolkata Knight Riders" ~ "KKR",
+    batting_team == "Lucknow Super Giants" ~ "LSG",
+    batting_team == "Mumbai Indians" ~ "MI",
+    batting_team == "Namibia" ~ "NAM",
+    batting_team == "Netherlands" ~ "NET",
+    batting_team == "New Zealand" ~ "NZ",
+    batting_team == "Pakistan" ~ "PAK",
+    batting_team == "Punjab Kings" ~ "PK",
+    batting_team == "Rajasthan Royals" ~ "RR",
+    batting_team == "Royal Challengers Bangalore" ~ "RCB",
+    batting_team == "Scotland" ~ "SCO",
+    batting_team == "South Africa" ~ "SA",
+    batting_team == "Sri Lanka" ~ "SL",
+    batting_team == "Sunrisers Hyderabad" ~ "SH",
+    batting_team == "United Arab Emirates" ~ "UAE",
+    batting_team == "West Indies" ~ "WI",
+    batting_team == "Zimbabwe" ~ "ZIM"
+    
+  ))
+
+
+dummy = dummyVars(~team, data = bat_alt)
+
+dataframe = predict(dummy,newdata = bat_alt)
+
+
+bat_alt = cbind(bat_alt,dataframe)
+
+
+
+
+
+# Same as above for bowling
+
+bowl_alt = bowl_alt %>% 
+  mutate(team = case_when(
+    bowling_team == "Afghanistan" ~ "AFG",
+    bowling_team == "Australia" ~ "AUS",
+    bowling_team == "Bangladesh" ~ "BAN",
+    bowling_team == "Chennai Super Kings" ~ "CSK",
+    bowling_team == "Delhi Capitals" ~ "DC",
+    bowling_team == "England" ~ "ENG",
+    bowling_team == "Gujarat Titans" ~ "GT",
+    bowling_team == "India" ~ "IND",
+    bowling_team == "Ireland" ~ "IRE",
+    bowling_team == "Kolkata Knight Riders" ~ "KKR",
+    bowling_team == "Lucknow Super Giants" ~ "LSG",
+    bowling_team == "Mumbai Indians" ~ "MI",
+    bowling_team == "Namibia" ~ "NAM",
+    bowling_team == "Netherlands" ~ "NET",
+    bowling_team == "New Zealand" ~ "NZ",
+    bowling_team == "Pakistan" ~ "PAK",
+    bowling_team == "Punjab Kings" ~ "PK",
+    bowling_team == "Rajasthan Royals" ~ "RR",
+    bowling_team == "Royal Challengers Bangalore" ~ "RCB",
+    bowling_team == "Scotland" ~ "SCO",
+    bowling_team == "South Africa" ~ "SA",
+    bowling_team == "Sri Lanka" ~ "SL",
+    bowling_team == "Sunrisers Hyderabad" ~ "SH",
+    bowling_team == "United Arab Emirates" ~ "UAE",
+    bowling_team == "West Indies" ~ "WI",
+    bowling_team == "Zimbabwe" ~ "ZIM"
+    
+  ))
+
+
+dummy = dummyVars(~team, data = bowl_alt)
+
+dataframe = predict(dummy,newdata = bowl_alt)
+
+
+bowl_alt = cbind(bowl_alt,dataframe)
 
 ```
 
@@ -129,6 +238,26 @@ What is the effect of temperature shocks on labor productivity of individual wor
 -   effect of accumulation of heat
 -   effect of excessive heat (\>$25^\circ$C)
 
+Utilize quasi-experimental variation provided by cricket world cup to estimate adaptation to short run climate shock
+
+# Contribution
+
+1. Effect of temperature on labor productivity
+
+    -   \textcolor{brown}{[Zivin \& Neidell, 2014; Sudarshan et.al, 2015; Seppänen et.al, 2006; Adhvaryu et.al, 2014; Heal \& Park, 2016; Carleton \& Hsiang, 2016; LoPalo 2023]}
+
+    -   First paper to utilize individual level sports data to estimate the impact of temperature shock on labor productivity 
+
+
+2. Climate adaptation \& labor productivity 
+
+    -   \textcolor{brown}{[Behrer \& Park, 2017; Chen \& Gong, 2021; Kjellstorm et.al, 2010]}
+    -   First paper to estimate the productivity response of workers to climate adaptation of short run climate shock
+
+3. Sports as labor market laboratory
+
+    -   \textcolor{brown}{[Kahn, 2000; Fesselmeyer, 2021; Archsmith et.al, 2017; Flynn, 2022]}
+
 # Setting
 
 1.  Sports provide a setting to observe individual worker productivity & track location
@@ -137,9 +266,11 @@ What is the effect of temperature shocks on labor productivity of individual wor
 
 3.  2 teams - 11 players each
 
-4.  Player types - Batsmen, Bowlers, All-rounders
+4.  Goal : To score maximum runs without losing wickets
 
-5.  Cricket T20 World Cup : October - November 2022
+5.  Player types - Batsmen, Bowlers, All-rounders
+
+6.  Cricket T20 World Cup : October - November 2022
 
     -   Location Australia
     -   16 countries
@@ -150,7 +281,7 @@ What is the effect of temperature shocks on labor productivity of individual wor
     -   Middle East : United Arab Emirates
     -   Caribbean : West Indies
 
-# Cricket
+# Background - Cricket
 
 How to play cricket?
 
@@ -162,9 +293,34 @@ How to play cricket?
 
 : Type of Cricket Games
 
+# Background
+
+-   Cricket is not commonly known to be as active as soccer or rugby
+
+-   An international batsman produces heat equivalent to individual running at 8 kmph (5 mph)
+
+    -   a day at the crease is equivalent to running a marathon with helmet, gloves, and pads (\textcolor{brown}{University of Portsmouth})
+
+-   Cricket requires physical and mental skills (strategy, concentration & agility)
+
+-   Batsmen face higher increase in core temperature than bowlers and fielders \textcolor{brown}{[Stay et.al., 2018]}
+
+# Background
+
+| Sector         | Estimated Heat Production (Watts/min) |
+|----------------|---------------------------------------|
+| Tourism        | 134 - 218                             |
+| Agriculture    | 200 - 420                             |
+| Construction   | 345                                   |
+| Manufacturing  | 122 - 443                             |
+| Transportation | 129 - 286                             |
+| Cricket        | 216 - 387                             |
+
+: Source: Poulianiti et.al., 2019 & "Hit for six" (Tipton et.al, 2019)
+
 # Data
 
-Cricket Data
+**Cricket Data**
 
 -   Novel dataset
 -   Scraped ESPN Cricinfo - Ball to Ball data
@@ -172,7 +328,7 @@ Cricket Data
 -   Tracks each player performance for every game over 2021, 2021/2022, 2022, and 2022/2023 season
 -   Player hometown/base location
 
-Temperature data
+**Temperature data**
 
 -   Global Meteorogical Forcing Dataset for Land Surface Modeling
     -   Monthly means - Air Temperature ($^\circ C$), Humidity ($kg kg^-1$) , Precipitation ($kg m^-2 s^-1$)
@@ -187,11 +343,17 @@ Temperature data
 Batsmen performance
 
 -   **Runs Scored**
+
 -   **Balls Faced**
+
 -   **Boundaries**
+
 -   **Strike Rate** $$
      \text{strike rate} = (\frac{RunsScored}{Balls})*100
      $$
+
+
+# Data
 
 Bowler performance
 
@@ -204,6 +366,9 @@ Bowler performance
 -   **Economy Rate** $$
     \text{economy rate} = \frac{RunsGiven}{Overs Bowled}
     $$
+-   **Strike Rate** $$
+    \text{strike rate} = \frac{balls bowled}{wicket}
+    $$
 
 -   **Extras** $$
     \text{extras} = No Balls + Wide Balls + Leg Byes
@@ -213,20 +378,33 @@ Bowler performance
 
 ### Variables
 
-1.  Temperature Shock = $Tempmax_{mdv} - Tempmax_{mdv-1}$
+1.  Temperature Shock 
 
--   (-Inf,-2], (-2,2], (2,Inf)
+    -  (-Inf,-2], (-2,2], (2,Inf)
+    -   $Tempmax_{mdv} - Tempmax_{mdv-1}$
 
-2.  Gap Bin = Days between two consecutive games
 
--   [0,3], (3,14], (14,Inf)
+2.  Heat accumulation \textcolor{brown}{[Miller et.al 2021]}
 
-3.  Heat accumulation \textcolor{brown}{[Miller et.al 2021]}\
-    $E_{ivd} = max\{0,E_{ivd-1} + 1(T_{ivd} \geq T_{i,home})h_{+}(T_{ivd},T_{i,home}) -1(T_{ivd}<T_{i,home})h_{-}(T_{ivd},T_{i,home}) \}$
+    -   [0,50], (50,110), (110,Inf)
+```{=latex}
+    $$
+    \begin{aligned}
+    E_{ivd} &= max\{0,E_{ivd-1} + 1(T_{ivd} \geq T_{i,home})h_{+}(T_{ivd},T_{i,home})\\
+    &-1(T_{ivd}<T_{i,home})h_{-}(T_{ivd},T_{i,home}) \}
+    \end{aligned}
+    $$
+```
 
--   [0,50], (50,110), (110,Inf)
 
-### Data Cut
+3.  Gap Bin = Days between two consecutive games
+
+    -   [0,3], (3,14], (14,Inf)
+    
+    
+# Data
+
+### Sample
 
 1.  Only complete games - abandoned matches dropped
 
@@ -247,10 +425,10 @@ tab_7 = data.frame(
 
 
 tab_8 = data.frame(
-  Measure = c("Runs Given", "Wicket", "Economy", "Extras"),
-  M_1  = c(mean(bowl_alt$runs_given), mean(bowl_alt$wicket), mean(bowl_alt$economy,na.rm = T), mean(bowl_alt$extras)),
-  SD_1 = c(sd(bowl_alt$runs_given,na.rm = T), sd(bowl_alt$wicket,na.rm = T), sd(bowl_alt$economy,na.rm = T),sd(bowl_alt$extras,na.rm = T)),
-  Obs  = c(length(is.na(bowl_alt$runs_given)),length(is.na(bowl_alt$wicket)), length(is.na(bowl_alt$economy)),length(is.na(bowl_alt$extras)))
+  Measure = c("Runs Given", "Wicket", "Economy", "Extras","Strike Rate"),
+  M_1  = c(mean(bowl_alt$runs_given), mean(bowl_alt$wicket), mean(bowl_alt$economy,na.rm = T), mean(bowl_alt$extras),mean(bowl_alt$strike_rate,na.rm = T)),
+  SD_1 = c(sd(bowl_alt$runs_given,na.rm = T), sd(bowl_alt$wicket,na.rm = T), sd(bowl_alt$economy,na.rm = T),sd(bowl_alt$extras,na.rm = T),sd(bowl_alt$strike_rate,na.rm = T)),
+  Obs  = c(length(is.na(bowl_alt$runs_given)),length(is.na(bowl_alt$wicket)), length(is.na(bowl_alt$economy)),length(is.na(bowl_alt$extras)),length(is.na(bowl_alt$strike_rate)))
 )
 ```
 
@@ -281,11 +459,9 @@ kable(
 knitr::include_graphics('~/OneDrive - UCB-O365/CricketCC/Code/cricket-climate/cricket-climate/venue-map.png')
 ```
 
-# Identification
+# Identification : Panel with FE
 
 Identification comes from variation in level of heat shock within and across teams
-
-Panel regression with fixed effects
 
 ```{=latex}
 $$
@@ -303,14 +479,38 @@ $$
 -   $\theta_{t}$ team fixed effect
 -   $\theta_{order}$ batting order (only used for batsmen)
 -   $\theta_{type}$ game type - test, odi, t20, ipl
+-   errors are clustered at player level
+
+# Identification : DiD
+
+In the absence of WC offering a climate shock, the players would have continued to behave the same.
+
+```{=latex}
+$$
+\begin{aligned}
+y_{itmdv} &= \beta_{1}treat_{it} + \beta_{2}wc_{itmdv} + \beta_{3}(treat x wc)_{itmdv} + \eta PRECIP_{mdv} +\\
+& \nu HUMIDITY_{mdv} + \rho X_{mdv} + \theta_{t} + \theta_{order/innings} + \epsilon_{itmdv}
+\end{aligned}
+$$
+```
+
+-   $y_{itmdv}$ measure of productivity for player $i$ in team $t$ playing in match $m$ on day $d$ at venue $v$
+-   $\beta_{3}$ is the parameter of interest
+-   $treat$ = 0 for Australian team & = 1 for everyone else
+-   $wc$ = 1 for all world cup games
+-   $X_{mdv}$ aggregate opposing team's temperature shock
+-   $\theta_{t}$ team fixed effect
+-   $\theta_{order/inning}$ batting order (only used for batsmen); Inning for bowlers
+-   errors are clustered at player level
+
 
 # Temperature Shock
 
 ```{r echo=FALSE,include=FALSE}
-reg1 = feols(runs ~ interact_var + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
-reg2 = feols(balls ~ interact_var + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
-reg3 = feols(strike_rate ~ interact_var + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
-reg4 = feols(boundary ~ interact_var + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
+reg1 = feols(runs ~ interact_var + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg2 = feols(balls ~ interact_var + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg3 = feols(strike_rate ~ interact_var + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(boundary ~ interact_var + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
 
 regs = list("runs" = reg1,"balls" = reg2,"strike rate" = reg3,"boundary" = reg4)
 
@@ -334,18 +534,20 @@ tab_1 <- modelsummary(regs,
 ```{r,echo=FALSE}
 tab_1
 ```
-
-Comparison : [-2,2].[0,3]
+Comparison : [-2,2].(14,Inf]
 
 # Temperature Shock
 
 ```{r echo=FALSE,include=FALSE}
-reg1 = feols(economy ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
-reg2 = feols(runs_given ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
-reg3 = feols(wicket ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
-reg4 = feols(extras ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
 
-regs = list("economy" = reg1,"runs given" = reg2,"wicket" = reg3,"extras" = reg4)
+reg1 = feols(runs_given ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg2 = feols(balls_bowled ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg3 = feols(extras ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg4 = feols(wicket ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg5 = feols(economy ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg6 = feols(strike_rate ~ interact_var + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+
+regs = list("runs given" = reg1, "balls" = reg2, "extras" = reg3, "wicket" = reg4, "economy" = reg5, "strike rate" = reg6)
 
 library(modelsummary)
 library(kableExtra)
@@ -367,16 +569,15 @@ tab_2 <- modelsummary(regs,
 ```{r,echo=FALSE}
 tab_2
 ```
-
-Comparison : [-2,2].[0,3]
+Comparison : [-2,2].(14,Inf]
 
 # Heat Accumulation
 
 ```{r echo=FALSE,include=FALSE}
-reg1 = feols(runs ~ interact_home + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
-reg2 = feols(balls ~ interact_home + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
-reg3 = feols(strike_rate ~ interact_home + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
-reg4 = feols(boundary ~ interact_home + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
+reg1 = feols(runs ~ interact_home + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg2 = feols(balls ~ interact_home + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg3 = feols(strike_rate ~ interact_home + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(boundary ~ interact_home + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
 
 regs = list("runs" = reg1,"balls" = reg2,"strike rate" = reg3,"boundary" = reg4)
 
@@ -404,15 +605,19 @@ tab_3
 
 ;Comparison : [0,50].[0,3]
 
-# Heat Accumulation 
+# Heat Accumulation
 
 ```{r echo=FALSE,include=FALSE}
-reg1 = feols(economy ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
-reg2 = feols(runs_given ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
-reg3 = feols(wicket ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
-reg4 = feols(extras ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
 
-regs = list("economy" = reg1,"runs given" = reg2,"wicket" = reg3,"extras" = reg4)
+reg1 = feols(runs_given ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg2 = feols(balls_bowled ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg3 = feols(extras ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg4 = feols(wicket ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg5 = feols(economy ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg6 = feols(strike_rate ~ interact_home + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+
+regs = list("runs given" = reg1, "balls" = reg2, "extras" = reg3, "wicket" = reg4, "economy" = reg5, "strike rate" = reg6)
+
 
 library(modelsummary)
 library(kableExtra)
@@ -440,10 +645,10 @@ tab_4
 # Excessive Heat - Batsmen
 
 ```{r echo=FALSE,include=FALSE}
-reg1 = feols(runs ~ interact_shock + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
-reg2 = feols(balls ~ interact_shock + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
-reg3 = feols(strike_rate ~ interact_shock + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
-reg4 = feols(boundary ~ interact_shock + precip + humidity + opp_team_temp|batting_team + batting_order + innings,data = bat_alt,cluster = c("striker"))
+reg1 = feols(runs ~ interact_shock + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg2 = feols(balls ~ interact_shock + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg3 = feols(strike_rate ~ interact_shock + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
+reg4 = feols(boundary ~ interact_shock + precip + humidity + opp_team_temp|batting_team + batting_order ,data = bat_alt,cluster = c("striker"))
 
 regs = list("runs" = reg1,"balls" = reg2,"strike rate" = reg3,"boundary" = reg4)
 
@@ -472,12 +677,15 @@ tab_5
 # Excessive Heat - Bowler
 
 ```{r echo=FALSE,include=FALSE}
-reg1 = feols(economy ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
-reg2 = feols(runs_given ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
-reg3 = feols(wicket ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
-reg4 = feols(extras ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg1 = feols(runs_given ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg2 = feols(balls_bowled ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg3 = feols(extras ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg4 = feols(wicket ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg5 = feols(economy ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
+reg6 = feols(strike_rate ~ interact_shock + precip + humidity + opp_team_temp|bowling_team + innings,data = bowl_alt,cluster = c("bowler"))
 
-regs = list("economy" = reg1,"runs given" = reg2,"wicket" = reg3,"extras" = reg4)
+regs = list("runs given" = reg1, "balls" = reg2, "extras" = reg3, "wicket" = reg4, "economy" = reg5, "strike rate" = reg6)
+
 
 library(modelsummary)
 library(kableExtra)
@@ -500,7 +708,147 @@ tab_6 <- modelsummary(regs,
 tab_6
 ```
 
+```{r,echo=FALSE,include=FALSE}
+library(modelsummary)
+didreg1 = feols(runs ~ treatment + wc + did + opp_team_temp + humidity + precip| batting_order ,data = bat_alt)
+didreg2 = feols(balls ~ treatment + wc + did + opp_team_temp + humidity + precip|batting_team + batting_order ,data = bat_alt)
+didreg3 = feols(strike_rate ~ treatment + wc + did + opp_team_temp + humidity + precip|batting_team + batting_order,data = bat_alt)
+didreg4 = feols(boundary ~ treatment + wc + did + opp_team_temp + humidity + precip|batting_team + batting_order,data = bat_alt)
 
+didreg_bat = list("runs" = didreg1,"balls"= didreg2,"strike rate" = didreg3,"boundary" = didreg4)
+
+didreg5 = feols(runs_given ~ treatment + wc + did + opp_team_temp + humidity + precip|bowling_team + innings, data = bowl_alt)
+didreg6 = feols(balls_bowled ~ treatment + wc + did + opp_team_temp + humidity + precip|bowling_team + innings , data = bowl_alt)
+didreg7 = feols(extras ~ treatment + wc + did + opp_team_temp + humidity + precip|bowling_team + innings , data = bowl_alt)
+didreg8 = feols(wicket ~ treatment + wc + did + opp_team_temp + humidity + precip|bowling_team + innings , data = bowl_alt)
+didreg9 = feols(economy ~ treatment + wc + did + opp_team_temp + humidity + precip|bowling_team + innings, data = bowl_alt)
+didreg10 = feols(bowling_average ~ treatment + wc + did + opp_team_temp + humidity + precip|bowling_team + innings , data = bowl_alt)
+didreg11 = feols(strike_rate ~ treatment + wc + did + opp_team_temp + humidity + precip|bowling_team + innings, data = bowl_alt)
+
+didreg_bowl = list("runs given" = didreg5,"balls" = didreg6,"extras"= didreg7,"wicket" = didreg8,"economy"=didreg9,"bowling average" = didreg10,"strike rate"=didreg11)
+
+tab_7 <- modelsummary(didreg_bat,
+                      stars = TRUE,
+                      title = "Effect of temperature shocks on Batsmen productivity",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "gt",
+                      escape = FALSE,
+                      fmt = "%.4f") 
+
+tab_7 = tab_7 %>% 
+  tab_style(style = cell_fill(color = "lightblue"),
+            locations = cells_body(rows = 5))
+
+tab_8 <- modelsummary(didreg_bowl,
+                      stars = TRUE,
+                      title = "Effect of temperature shocks on Bowler productivity",
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+```
+
+# Difference in Difference: Batsmen
+
+\small
+```{r,echo=FALSE}
+tab_7
+
+```
+
+# Difference in Difference: Bowlers
+
+\tiny
+
+```{r,echo=FALSE}
+tab_8
+
+```
+
+```{r,echo=FALSE,include=FALSE}
+
+# Create a sample vector of terms with quotes around them
+terms <- c("\"teamAFG\"", "\"teamAUS\"", "\"teamBAN\"", 
+           "\"teamCSK\"", "\"teamDC\"", "\"teamENG\"", "\"teamGT\"", "\"teamIND\"", "\"teamIRE\"", "\"teamKKR\"", "\"teamLSG\"", "\"teamMI\"", "\"teamNAM\"", "\"teamNET\"",
+           "\"teamNZ\"", "\"teamPAK\"", "\"teamPK\"", "\"teamRCB\"", "\"teamRR\"", "\"teamSA\"", "\"teamSCO\"", "\"teamSH\"", "\"teamSL\"", "\"teamUAE\"","\"teamWI\"","\"teamZIM\"")
+
+# Remove the quotes and add "+" between each term
+terms <- gsub("\"", "", terms)
+terms <- paste(terms, collapse = " + ")
+
+print(terms)
+
+didreg1 = feols(runs ~  wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|batting_team +  batting_order ,data = bat_alt)
+
+didreg2 = feols(balls ~  wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|batting_team + batting_order ,data = bat_alt)
+
+didreg3 = feols(strike_rate ~ wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|batting_team + batting_order,data = bat_alt)
+
+didreg4 = feols(boundary ~  wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|batting_team + batting_order,data = bat_alt)
+
+
+did_bat_int = list("runs"= didreg1,"balls" = didreg2,"strike_rate" = didreg3,"boundary" = didreg4)
+
+tab_9 <- modelsummary(did_bat_int,
+                      stars = TRUE,
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+
+
+didreg5 = feols(runs_given ~ wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|bowling_team + innings, data = bowl_alt)
+
+didreg6 = feols(balls_bowled ~ wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|bowling_team + innings , data = bowl_alt)
+
+didreg7 = feols(extras ~ wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|bowling_team + innings , data = bowl_alt)
+
+didreg8 = feols(wicket ~ wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|bowling_team + innings , data = bowl_alt)
+
+didreg9 = feols(economy ~ wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|bowling_team + innings, data = bowl_alt)
+
+didreg10 = feols(bowling_average ~ wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|bowling_team + innings , data = bowl_alt)
+
+didreg11 = feols(strike_rate ~ wc*(teamAFG + teamBAN + teamCSK + teamDC + teamENG + teamGT + teamIND + teamIRE + teamKKR + teamLSG + teamMI + teamNAM + teamNET + teamNZ + teamPAK + teamPK + teamRCB + teamRR + teamSA + teamSCO + teamSH + teamSL + teamUAE + teamWI + teamZIM) + opp_team_temp + humidity + precip|bowling_team + innings, data = bowl_alt)
+
+didreg_bowl = list("runs given" = didreg5,"balls" = didreg6,"extras"= didreg7,"wicket" = didreg8,"economy"=didreg9,"bowling average" = didreg10,"strike rate"=didreg11)
+
+tab_10 <- modelsummary(didreg_bowl,
+                      stars = TRUE,
+                      gof_omit = "R2 Within|R2 P|Log|AIC|BIC|Std",
+                      output = "markdown",
+                      escape = FALSE,
+                      fmt = "%.4f")
+```
+
+# Heterogeneity by team: Batsmen
+
+\tiny
+
+```{r,echo=FALSE}
+tab_9
+```
+
+# Heterogeneity by team: Bowler
+
+\tiny
+
+```{r,echo=FALSE}
+tab_10
+```
+
+```{r,echo=FALSE,include=FALSE}
+#Attempting to do event study in 
+
+start = as.Date("2022-10-16")
+end = as.Date("2022-11-13")
+
+bat_filter = bat_alt %>% 
+  group_by(striker) %>% 
+  filter(start_date >= start & start_date <= end) %>% 
+  slice(1) 
+
+```
 
 # Next Steps
 
@@ -509,9 +857,7 @@ tab_6
 -   International games vs League games
 -   Presence of Supertars \textcolor{brown}{[Brown 2011]}
 
-2.  Why are batsmen & bowlers behaving differently?
-
-3.  Heat accumulation measure by month and not aggregate
+2.  Event Study
 
 # End
 
